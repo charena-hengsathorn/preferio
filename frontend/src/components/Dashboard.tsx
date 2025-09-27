@@ -30,7 +30,7 @@ const Dashboard: React.FC = () => {
           </div>
           <div className="header-right">
             <div className="user-info">
-              <span className="user-name">TPI POLENE POWER</span>
+              <span className="user-name">PREFERIO TRADE CO LTD</span>
               <span className="user-email">LANDFILL REPORT SYSTEM</span>
             </div>
           </div>

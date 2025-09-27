@@ -47,6 +47,8 @@ const LandfillReport: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [pricingType, setPricingType] = useState<'gcv' | 'fixed'>('gcv');
+  const [editingRow, setEditingRow] = useState<number | null>(null);
+  const [editData, setEditData] = useState<Partial<LandfillRow>>({});
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
     receive_ton: undefined,
     ton: undefined,
@@ -75,6 +77,103 @@ const LandfillReport: React.FC = () => {
   useEffect(() => {
     fetchReport();
   }, []);
+
+  // Auto-calculate price when GCV, Multi, or Price changes
+  useEffect(() => {
+    if (pricingType === 'gcv' && newRow.gcv && newRow.multi && newRow.price) {
+      const calculatedBahtPerTon = (newRow.gcv * newRow.multi) + newRow.price;
+      setNewRow(prev => ({ ...prev, baht_per_ton: calculatedBahtPerTon }));
+    }
+  }, [newRow.gcv, newRow.multi, newRow.price, pricingType]);
+
+  // Auto-update Total Ton to match Ton field
+  useEffect(() => {
+    if (newRow.ton) {
+      setNewRow(prev => ({ ...prev, total_ton: newRow.ton }));
+    }
+  }, [newRow.ton]);
+
+  // Auto-calculate amount when Total Ton or Baht/Ton changes
+  useEffect(() => {
+    if (newRow.total_ton && newRow.baht_per_ton) {
+      const calculatedAmount = newRow.total_ton * newRow.baht_per_ton;
+      setNewRow(prev => ({ ...prev, amount: calculatedAmount }));
+    }
+  }, [newRow.total_ton, newRow.baht_per_ton]);
+
+  // Auto-calculate total when Amount or VAT changes
+  useEffect(() => {
+    if (newRow.amount && newRow.vat) {
+      const calculatedTotal = newRow.amount + newRow.vat;
+      setNewRow(prev => ({ ...prev, total: calculatedTotal }));
+    }
+  }, [newRow.amount, newRow.vat]);
+
+  // Calculate the preview value for display
+  const getCalculatedValue = () => {
+    if (pricingType === 'gcv' && newRow.gcv && newRow.multi && newRow.price) {
+      return ((newRow.gcv * newRow.multi) + newRow.price).toFixed(2);
+    }
+    return '';
+  };
+
+  // Calculate the amount value for display
+  const getCalculatedAmount = () => {
+    if (newRow.total_ton && newRow.baht_per_ton) {
+      return (newRow.total_ton * newRow.baht_per_ton).toFixed(2);
+    }
+    return '';
+  };
+
+  // Calculate the total value for display
+  const getCalculatedTotal = () => {
+    if (newRow.amount && newRow.vat) {
+      return (newRow.amount + newRow.vat).toFixed(2);
+    }
+    return '';
+  };
+
+  // Get placeholder text for Baht/Ton field
+  const getBahtPerTonPlaceholder = () => {
+    if (pricingType === 'gcv') {
+      const calculated = getCalculatedValue();
+      if (calculated) {
+        return `Auto: ${calculated}`;
+      } else {
+        return '(GCV × Multi) + Price';
+      }
+    }
+    return '';
+  };
+
+  // Get placeholder text for Amount field
+  const getAmountPlaceholder = () => {
+    const calculated = getCalculatedAmount();
+    if (calculated) {
+      return `Auto: ${calculated}`;
+    } else {
+      return 'Total Ton × Baht/Ton';
+    }
+  };
+
+  // Get placeholder text for Total Ton field
+  const getTotalTonPlaceholder = () => {
+    if (newRow.ton) {
+      return `Auto: ${newRow.ton}`;
+    } else {
+      return 'Same as Ton';
+    }
+  };
+
+  // Get placeholder text for Total field
+  const getTotalPlaceholder = () => {
+    const calculated = getCalculatedTotal();
+    if (calculated) {
+      return `Auto: ${calculated}`;
+    } else {
+      return 'Amount + VAT';
+    }
+  };
 
   const handleCompanyChange = async (newCompany: string) => {
     if (!report) return;
@@ -237,6 +336,55 @@ const LandfillReport: React.FC = () => {
     }
   };
 
+  const handleEditRow = (id: number) => {
+    const rowToEdit = report?.data_rows.find(row => row.id === id);
+    if (rowToEdit) {
+      setEditingRow(id);
+      // Ensure all fields have proper default values
+      setEditData({
+        id: rowToEdit.id,
+        receive_ton: rowToEdit.receive_ton || undefined,
+        ton: rowToEdit.ton || 0,
+        gcv: rowToEdit.gcv || undefined,
+        multi: rowToEdit.multi || undefined,
+        price: rowToEdit.price || undefined,
+        total_ton: rowToEdit.total_ton || 0,
+        baht_per_ton: rowToEdit.baht_per_ton || 0,
+        amount: rowToEdit.amount || 0,
+        vat: rowToEdit.vat || 0,
+        total: rowToEdit.total || 0,
+        remark: rowToEdit.remark || ''
+      });
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingRow || !editData) return;
+    
+    try {
+      const response = await fetch(`${API_BASE}/landfill-report/row/${editingRow}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editData),
+      });
+      
+      if (response.ok) {
+        setEditingRow(null);
+        setEditData({});
+        fetchReport();
+      }
+    } catch (error) {
+      console.error('Error updating row:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingRow(null);
+    setEditData({});
+  };
+
   const exportToJSON = async () => {
     try {
       const response = await fetch(`${API_BASE}/landfill-report/export`);
@@ -301,17 +449,6 @@ const LandfillReport: React.FC = () => {
       </header>
 
       <div className="table-controls">
-        <div className="controls-left">
-          <button 
-            className="btn btn-primary" 
-            onClick={() => setShowAddForm(!showAddForm)}
-          >
-            {showAddForm ? 'Cancel' : 'Add Row'}
-          </button>
-          <button className="btn btn-secondary" onClick={exportToJSON}>
-            Export JSON
-          </button>
-        </div>
         
       </div>
 
@@ -381,30 +518,36 @@ const LandfillReport: React.FC = () => {
                 </>
               )}
               <div className="form-group">
-                <label>Total Ton:</label>
+                <label>Total Ton: (Auto-updates)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={newRow.total_ton || ''}
                   onChange={(e) => setNewRow({...newRow, total_ton: parseFloat(e.target.value) || undefined})}
+                  placeholder={getTotalTonPlaceholder()}
+                  className="calculated-field"
                 />
               </div>
               <div className="form-group">
-                <label>Baht/Ton:</label>
+                <label>Baht/Ton: {pricingType === 'gcv' ? '(Auto-updates)' : ''}</label>
                 <input
                   type="number"
                   step="0.01"
                   value={newRow.baht_per_ton || ''}
                   onChange={(e) => setNewRow({...newRow, baht_per_ton: parseFloat(e.target.value) || undefined})}
+                  placeholder={getBahtPerTonPlaceholder()}
+                  className={pricingType === 'gcv' ? 'calculated-field' : ''}
                 />
               </div>
               <div className="form-group">
-                <label>Amount:</label>
+                <label>Amount: (Auto-updates)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={newRow.amount || ''}
                   onChange={(e) => setNewRow({...newRow, amount: parseFloat(e.target.value) || undefined})}
+                  placeholder={getAmountPlaceholder()}
+                  className="calculated-field"
                 />
               </div>
               <div className="form-group">
@@ -417,12 +560,14 @@ const LandfillReport: React.FC = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Total:</label>
+                <label>Total: (Auto-updates)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={newRow.total || ''}
                   onChange={(e) => setNewRow({...newRow, total: parseFloat(e.target.value) || undefined})}
+                  placeholder={getTotalPlaceholder()}
+                  className="calculated-field"
                 />
               </div>
               <div className="form-group full-width">
@@ -446,6 +591,20 @@ const LandfillReport: React.FC = () => {
         </div>
       )}
 
+      <div className="table-header-controls">
+        <div className="table-actions">
+          <button 
+            className="btn btn-primary" 
+            onClick={() => setShowAddForm(!showAddForm)}
+          >
+            {showAddForm ? 'Cancel' : 'Add Row'}
+          </button>
+          <button className="btn btn-secondary" onClick={exportToJSON}>
+            Export JSON
+          </button>
+        </div>
+      </div>
+
       <div className="table-container">
         <table className="landfill-table">
             <thead>
@@ -466,39 +625,174 @@ const LandfillReport: React.FC = () => {
             </thead>
             <tbody>
               {report.data_rows.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.receive_ton?.toLocaleString() || ''}</td>
-                  <td>{row.ton.toLocaleString()}</td>
-                  <td>{row.gcv?.toLocaleString() || ''}</td>
-                  <td>{row.multi?.toLocaleString() || ''}</td>
-                  <td>{row.price?.toLocaleString() || ''}</td>
-                  <td>{row.total_ton.toLocaleString()}</td>
-                  <td>{row.baht_per_ton.toLocaleString()}</td>
-                  <td>{row.amount.toLocaleString()}</td>
-                  <td>{row.vat.toLocaleString()}</td>
-                  <td>{row.total.toLocaleString()}</td>
-                  <td>{row.remark || ''}</td>
-                  <td>
-                    <button 
-                      className="btn btn-danger btn-sm"
-                      onClick={() => deleteRow(row.id!)}
-                    >
-                      Delete
-                    </button>
-                  </td>
+                <tr key={row.id} className={editingRow === row.id ? 'editing-row' : ''}>
+                  {editingRow === row.id ? (
+                    // Edit mode
+                    <>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.receive_ton || ''}
+                          onChange={(e) => setEditData({...editData, receive_ton: parseFloat(e.target.value) || undefined})}
+                          className="edit-input"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.ton || ''}
+                          onChange={(e) => setEditData({...editData, ton: parseFloat(e.target.value) || 0})}
+                          className="edit-input"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.gcv || ''}
+                          onChange={(e) => setEditData({...editData, gcv: parseFloat(e.target.value) || undefined})}
+                          className="edit-input"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.multi || ''}
+                          onChange={(e) => setEditData({...editData, multi: parseFloat(e.target.value) || undefined})}
+                          className="edit-input"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.price || ''}
+                          onChange={(e) => setEditData({...editData, price: parseFloat(e.target.value) || undefined})}
+                          className="edit-input"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.total_ton || ''}
+                          onChange={(e) => setEditData({...editData, total_ton: parseFloat(e.target.value) || 0})}
+                          className="edit-input"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.baht_per_ton || ''}
+                          onChange={(e) => setEditData({...editData, baht_per_ton: parseFloat(e.target.value) || 0})}
+                          className="edit-input"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.amount || ''}
+                          onChange={(e) => setEditData({...editData, amount: parseFloat(e.target.value) || 0})}
+                          className="edit-input"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.vat || ''}
+                          onChange={(e) => setEditData({...editData, vat: parseFloat(e.target.value) || 0})}
+                          className="edit-input"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editData.total || ''}
+                          onChange={(e) => setEditData({...editData, total: parseFloat(e.target.value) || 0})}
+                          className="edit-input"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={editData.remark || ''}
+                          onChange={(e) => setEditData({...editData, remark: e.target.value})}
+                          className="edit-input"
+                        />
+                      </td>
+                      <td>
+                        <div className="action-buttons">
+                          <button 
+                            className="btn btn-success btn-sm"
+                            onClick={handleSaveEdit}
+                            title="Save Changes"
+                          >
+                            ✓
+                          </button>
+                          <button 
+                            className="btn btn-secondary btn-sm"
+                            onClick={handleCancelEdit}
+                            title="Cancel Edit"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    // Normal display mode
+                    <>
+                      <td>{row.receive_ton?.toLocaleString() || ''}</td>
+                      <td>{row.ton.toLocaleString()}</td>
+                      <td>{row.gcv?.toLocaleString() || ''}</td>
+                      <td>{row.multi?.toLocaleString() || ''}</td>
+                      <td>{row.price?.toLocaleString() || ''}</td>
+                      <td>{row.total_ton.toLocaleString()}</td>
+                      <td>{row.baht_per_ton.toLocaleString()}</td>
+                      <td>{row.amount.toLocaleString()}</td>
+                      <td>{row.vat.toLocaleString()}</td>
+                      <td>{row.total.toLocaleString()}</td>
+                      <td>{row.remark || ''}</td>
+                      <td>
+                        <div className="action-buttons">
+                          <button 
+                            className="btn btn-edit btn-sm"
+                            onClick={() => handleEditRow(row.id!)}
+                            title="Edit Row"
+                          >
+                            ✏️
+                          </button>
+                          <button 
+                            className="btn btn-danger btn-sm"
+                            onClick={() => deleteRow(row.id!)}
+                            title="Delete Row"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  )}
                 </tr>
               ))}
               <tr className="totals-row">
                 <td><strong>{report.totals.receive_ton?.toLocaleString() || ''}</strong></td>
-                <td><strong>{report.totals.ton.toLocaleString()}</strong></td>
+                <td><strong>{report.totals.ton?.toLocaleString() || ''}</strong></td>
                 <td></td>
                 <td></td>
                 <td></td>
-                <td><strong>{report.totals.total_ton.toLocaleString()}</strong></td>
+                <td><strong>{report.totals.total_ton?.toLocaleString() || ''}</strong></td>
                 <td></td>
-                <td><strong>{report.totals.amount.toLocaleString()}</strong></td>
-                <td><strong>{report.totals.vat.toLocaleString()}</strong></td>
-                <td><strong>{report.totals.total.toLocaleString()}</strong></td>
+                <td><strong>{report.totals.amount?.toLocaleString() || ''}</strong></td>
+                <td><strong>{report.totals.vat?.toLocaleString() || ''}</strong></td>
+                <td><strong>{report.totals.total?.toLocaleString() || ''}</strong></td>
                 <td></td>
                 <td></td>
               </tr>

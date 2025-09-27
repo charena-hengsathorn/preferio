@@ -11,7 +11,12 @@ app = FastAPI(title="Preferio API", version="1.0.0")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # Vite and Next.js default ports
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",  # Vite default port
+        "https://preferio.vercel.app",  # Vercel production domain
+        "https://*.vercel.app"  # All Vercel preview deployments
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

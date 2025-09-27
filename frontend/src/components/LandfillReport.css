@@ -88,6 +88,18 @@
   flex-wrap: wrap;
 }
 
+.table-header-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.table-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .controls-left {
   display: flex;
   gap: 1rem;
@@ -113,6 +125,14 @@
 .btn-primary {
   background: #00b4db;
   color: white;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  min-width: auto;
+  height: auto;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn-primary:hover {
@@ -122,6 +142,14 @@
 .btn-secondary {
   background: #95a5a6;
   color: white;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  min-width: auto;
+  height: auto;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn-secondary:hover {
@@ -480,4 +508,132 @@
     font-size: 0.9rem;
     padding: 0.4rem;
   }
+}
+
+/* Formula Display */
+.formula-display {
+  background: linear-gradient(135deg, #e8f5e8 0%, #f0f8f0 100%);
+  border: 1px solid #4caf50;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0;
+  color: #2e7d32;
+  font-size: 0.9rem;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(76, 175, 80, 0.1);
+}
+
+.formula-display strong {
+  color: #1b5e20;
+}
+
+/* Calculated Field Styling */
+.calculated-field {
+  position: relative;
+}
+
+.calculated-field::placeholder {
+  color: #6c757d;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.calculated-field:focus::placeholder {
+  color: #adb5bd;
+}
+
+/* Action Buttons Styling */
+.action-buttons {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.action-buttons .btn-edit {
+  background: #17a2b8;
+  color: white;
+  opacity: 0.9;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+.action-buttons .btn-edit:hover {
+  background: #138496;
+  opacity: 1;
+}
+
+.action-buttons .btn-edit:focus {
+  box-shadow: 0 0 0 2px rgba(23, 162, 184, 0.25);
+}
+
+.action-buttons .btn-danger {
+  opacity: 0.9;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+.action-buttons .btn-danger:hover {
+  opacity: 1;
+}
+
+/* Edit Mode Styling */
+.editing-row {
+  background-color: #f8f9fa !important;
+  border: 2px solid #17a2b8;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: white;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.edit-input:focus {
+  border-color: #17a2b8;
+  outline: 0;
+  box-shadow: 0 0 0 2px rgba(23, 162, 184, 0.25);
+}
+
+.action-buttons .btn-success {
+  background: #28a745;
+  color: white;
+  opacity: 0.9;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+.action-buttons .btn-success:hover {
+  background: #218838;
+  opacity: 1;
+}
+
+.action-buttons .btn-success:focus {
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
+}
+
+.action-buttons .btn-secondary {
+  opacity: 0.9;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+.action-buttons .btn-secondary:hover {
+  opacity: 1;
 }
