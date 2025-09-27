@@ -3,10 +3,12 @@
   margin: 0 auto;
   padding: 1rem;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  background: linear-gradient(135deg, #f0fdff 0%, #e6f7ff 100%);
+  min-height: 100vh;
 }
 
 .report-header {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  background: linear-gradient(135deg, #00b4db 0%, #0083b0 100%);
   color: white;
   padding: 2rem;
   border-radius: 12px;
@@ -67,12 +69,12 @@
 .dropdown-select:focus {
   outline: none;
   background: rgba(255, 255, 255, 0.2);
-  border-color: #3498db;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+  border-color: #00b4db;
+  box-shadow: 0 0 0 2px rgba(0, 180, 219, 0.3);
 }
 
 .dropdown-select option {
-  background: #2c3e50;
+  background: #0083b0;
   color: white;
   padding: 0.5rem;
 }
@@ -109,12 +111,12 @@
 }
 
 .btn-primary {
-  background: #3498db;
+  background: #00b4db;
   color: white;
 }
 
 .btn-primary:hover {
-  background: #2980b9;
+  background: #0099cc;
 }
 
 .btn-secondary {
@@ -184,6 +186,38 @@
   margin-bottom: 1.5rem;
 }
 
+.form-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.add-row-form .dropdown-select {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #2d3748;
+  font-size: 1rem;
+  padding: 0.5rem;
+  min-width: 200px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-row-form .dropdown-select:hover {
+  border-color: #00b4db;
+}
+
+.add-row-form .dropdown-select:focus {
+  outline: none;
+  border-color: #00b4db;
+  box-shadow: 0 0 0 2px rgba(0, 180, 219, 0.3);
+}
+
+.add-row-form .dropdown-select option {
+  background: white;
+  color: #2d3748;
+  padding: 0.5rem;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -237,12 +271,12 @@
 }
 
 .landfill-table th {
-  background: #34495e;
+  background: #0083b0;
   color: white;
   padding: 0.75rem 0.5rem;
   text-align: center;
   font-weight: 600;
-  border-right: 1px solid #2c3e50;
+  border-right: 1px solid #006699;
   font-size: 0.8rem;
 }
 
@@ -283,13 +317,13 @@
 }
 
 .totals-row {
-  background: #e8f4f8 !important;
+  background: #e6f7ff !important;
   font-weight: 700;
 }
 
 .totals-row td {
-  border-top: 2px solid #3498db;
-  border-bottom: 2px solid #3498db;
+  border-top: 2px solid #00b4db;
+  border-bottom: 2px solid #00b4db;
 }
 
 .additional-info {

@@ -46,13 +46,18 @@ const LandfillReport: React.FC = () => {
   const [report, setReport] = useState<LandfillReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [pricingType, setPricingType] = useState<'gcv' | 'fixed'>('gcv');
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
-    ton: 0,
-    total_ton: 0,
-    baht_per_ton: 0,
-    amount: 0,
-    vat: 0,
-    total: 0,
+    receive_ton: undefined,
+    ton: undefined,
+    gcv: undefined,
+    multi: undefined,
+    price: undefined,
+    total_ton: undefined,
+    baht_per_ton: undefined,
+    amount: undefined,
+    vat: undefined,
+    total: undefined,
     remark: ''
   });
 
@@ -196,14 +201,19 @@ const LandfillReport: React.FC = () => {
       });
       if (response.ok) {
         setNewRow({
-          ton: 0,
-          total_ton: 0,
-          baht_per_ton: 0,
-          amount: 0,
-          vat: 0,
-          total: 0,
+          receive_ton: undefined,
+          ton: undefined,
+          gcv: undefined,
+          multi: undefined,
+          price: undefined,
+          total_ton: undefined,
+          baht_per_ton: undefined,
+          amount: undefined,
+          vat: undefined,
+          total: undefined,
           remark: ''
         });
+        setPricingType('gcv');
         setShowAddForm(false);
         fetchReport();
       }
@@ -310,6 +320,17 @@ const LandfillReport: React.FC = () => {
           <h3>Add New Row</h3>
           <form onSubmit={addRow}>
             <div className="form-grid">
+              <div className="form-group full-width">
+                <label>Pricing Type:</label>
+                <select 
+                  className="dropdown-select"
+                  value={pricingType}
+                  onChange={(e) => setPricingType(e.target.value as 'gcv' | 'fixed')}
+                >
+                  <option value="gcv">GCV Based Pricing</option>
+                  <option value="fixed">Fixed Rate Pricing</option>
+                </select>
+              </div>
               <div className="form-group">
                 <label>Receive (Ton):</label>
                 <input
@@ -325,45 +346,47 @@ const LandfillReport: React.FC = () => {
                   type="number"
                   step="0.01"
                   value={newRow.ton || ''}
-                  onChange={(e) => setNewRow({...newRow, ton: parseFloat(e.target.value) || 0})}
-                  required
+                  onChange={(e) => setNewRow({...newRow, ton: parseFloat(e.target.value) || undefined})}
                 />
               </div>
-              <div className="form-group">
-                <label>GCV:</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={newRow.gcv || ''}
-                  onChange={(e) => setNewRow({...newRow, gcv: parseFloat(e.target.value) || undefined})}
-                />
-              </div>
-              <div className="form-group">
-                <label>Multi:</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={newRow.multi || ''}
-                  onChange={(e) => setNewRow({...newRow, multi: parseFloat(e.target.value) || undefined})}
-                />
-              </div>
-              <div className="form-group">
-                <label>Price:</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={newRow.price || ''}
-                  onChange={(e) => setNewRow({...newRow, price: parseFloat(e.target.value) || undefined})}
-                />
-              </div>
+              {pricingType === 'gcv' && (
+                <>
+                  <div className="form-group">
+                    <label>GCV:</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newRow.gcv || ''}
+                      onChange={(e) => setNewRow({...newRow, gcv: parseFloat(e.target.value) || undefined})}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Multi:</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newRow.multi || ''}
+                      onChange={(e) => setNewRow({...newRow, multi: parseFloat(e.target.value) || undefined})}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Price:</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newRow.price || ''}
+                      onChange={(e) => setNewRow({...newRow, price: parseFloat(e.target.value) || undefined})}
+                    />
+                  </div>
+                </>
+              )}
               <div className="form-group">
                 <label>Total Ton:</label>
                 <input
                   type="number"
                   step="0.01"
                   value={newRow.total_ton || ''}
-                  onChange={(e) => setNewRow({...newRow, total_ton: parseFloat(e.target.value) || 0})}
-                  required
+                  onChange={(e) => setNewRow({...newRow, total_ton: parseFloat(e.target.value) || undefined})}
                 />
               </div>
               <div className="form-group">
@@ -372,8 +395,7 @@ const LandfillReport: React.FC = () => {
                   type="number"
                   step="0.01"
                   value={newRow.baht_per_ton || ''}
-                  onChange={(e) => setNewRow({...newRow, baht_per_ton: parseFloat(e.target.value) || 0})}
-                  required
+                  onChange={(e) => setNewRow({...newRow, baht_per_ton: parseFloat(e.target.value) || undefined})}
                 />
               </div>
               <div className="form-group">
@@ -382,8 +404,7 @@ const LandfillReport: React.FC = () => {
                   type="number"
                   step="0.01"
                   value={newRow.amount || ''}
-                  onChange={(e) => setNewRow({...newRow, amount: parseFloat(e.target.value) || 0})}
-                  required
+                  onChange={(e) => setNewRow({...newRow, amount: parseFloat(e.target.value) || undefined})}
                 />
               </div>
               <div className="form-group">
@@ -392,8 +413,7 @@ const LandfillReport: React.FC = () => {
                   type="number"
                   step="0.01"
                   value={newRow.vat || ''}
-                  onChange={(e) => setNewRow({...newRow, vat: parseFloat(e.target.value) || 0})}
-                  required
+                  onChange={(e) => setNewRow({...newRow, vat: parseFloat(e.target.value) || undefined})}
                 />
               </div>
               <div className="form-group">
@@ -402,8 +422,7 @@ const LandfillReport: React.FC = () => {
                   type="number"
                   step="0.01"
                   value={newRow.total || ''}
-                  onChange={(e) => setNewRow({...newRow, total: parseFloat(e.target.value) || 0})}
-                  required
+                  onChange={(e) => setNewRow({...newRow, total: parseFloat(e.target.value) || undefined})}
                 />
               </div>
               <div className="form-group full-width">
