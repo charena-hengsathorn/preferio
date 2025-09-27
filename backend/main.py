@@ -5,6 +5,7 @@ from typing import List, Optional
 import uvicorn
 import json
 import os
+from datetime import datetime
 
 app = FastAPI(title="Preferio API", version="1.0.0")
 
@@ -55,6 +56,19 @@ class LandfillReport(BaseModel):
     totals: dict
     additional_info: dict
 
+# All Reports Models
+class ReportSummary(BaseModel):
+    id: str
+    name: str
+    company: str
+    period: str
+    created_at: str
+    updated_at: str
+    total_amount: float
+
+class AllReports(BaseModel):
+    reports: List[dict]
+
 # In-memory storage (replace with database in production)
 items_db = []
 next_id = 1
@@ -71,6 +85,24 @@ def load_landfill_data():
 def save_landfill_data(data):
     with open(landfill_data_file, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+# All Reports Functions
+def load_all_reports():
+    try:
+        if os.path.exists('all_reports.json'):
+            with open('all_reports.json', 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return {"reports": []}
+    except Exception as e:
+        print(f"Error loading all reports: {e}")
+        return {"reports": []}
+
+def save_all_reports(data):
+    try:
+        with open('all_reports.json', 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving all reports: {e}")
 
 @app.get("/")
 async def root():
@@ -226,6 +258,87 @@ async def export_landfill_report():
         return {"error": "No report data found"}
     
     return data
+
+# All Reports Endpoints
+@app.get("/all-reports")
+async def get_all_reports():
+    """Get list of all landfill reports with summary information"""
+    data = load_all_reports()
+    reports_summary = []
+    
+    for report in data.get('reports', []):
+        summary = {
+            "id": report.get('id'),
+            "name": report.get('name'),
+            "company": report.get('report_info', {}).get('company'),
+            "period": report.get('report_info', {}).get('period'),
+            "created_at": report.get('created_at'),
+            "updated_at": report.get('updated_at'),
+            "total_amount": report.get('totals', {}).get('total', 0)
+        }
+        reports_summary.append(summary)
+    
+    return {"reports": reports_summary}
+
+@app.get("/all-reports/{report_id}")
+async def get_report_by_id(report_id: str):
+    """Get a specific landfill report by ID"""
+    data = load_all_reports()
+    
+    for report in data.get('reports', []):
+        if report.get('id') == report_id:
+            return report
+    
+    return {"error": "Report not found"}
+
+@app.post("/all-reports")
+async def create_new_report(report_data: dict):
+    """Create a new landfill report"""
+    data = load_all_reports()
+    
+    # Generate new ID
+    existing_ids = [r.get('id') for r in data.get('reports', [])]
+    new_id = f"P{max([int(id[1:]) for id in existing_ids if id and id.startswith('P')], default=7921) + 1}"
+    
+    # Add metadata
+    report_data['id'] = new_id
+    report_data['created_at'] = datetime.now().isoformat()
+    report_data['updated_at'] = datetime.now().isoformat()
+    
+    data['reports'].append(report_data)
+    save_all_reports(data)
+    
+    return {"message": "Report created successfully", "report_id": new_id}
+
+@app.put("/all-reports/{report_id}")
+async def update_report(report_id: str, report_data: dict):
+    """Update an existing landfill report"""
+    data = load_all_reports()
+    
+    for i, report in enumerate(data.get('reports', [])):
+        if report.get('id') == report_id:
+            report_data['id'] = report_id
+            report_data['created_at'] = report.get('created_at')
+            report_data['updated_at'] = datetime.now().isoformat()
+            
+            data['reports'][i] = report_data
+            save_all_reports(data)
+            return {"message": "Report updated successfully"}
+    
+    return {"error": "Report not found"}
+
+@app.delete("/all-reports/{report_id}")
+async def delete_report(report_id: str):
+    """Delete a landfill report"""
+    data = load_all_reports()
+    
+    for i, report in enumerate(data.get('reports', [])):
+        if report.get('id') == report_id:
+            del data['reports'][i]
+            save_all_reports(data)
+            return {"message": "Report deleted successfully"}
+    
+    return {"error": "Report not found"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

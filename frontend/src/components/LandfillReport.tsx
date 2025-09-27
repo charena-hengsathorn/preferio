@@ -411,9 +411,11 @@ const LandfillReport: React.FC = () => {
   return (
     <div className="landfill-report">
       <header className="report-header">
-        <h1>TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT</h1>
+        <div className="header-row">
+          <h1>TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT</h1>
+        </div>
         <div className="report-info">
-          <div className="info-row">
+          <div className="info-item">
             <span className="label">Period:</span>
             <select 
               className="dropdown-select"
@@ -425,7 +427,7 @@ const LandfillReport: React.FC = () => {
               ))}
             </select>
           </div>
-          <div className="info-row">
+          <div className="info-item">
             <span className="label">Company:</span>
             <select 
               className="dropdown-select"
@@ -437,13 +439,13 @@ const LandfillReport: React.FC = () => {
               ))}
             </select>
           </div>
-          <div className="info-row">
+          <div className="info-item">
             <span className="label">Report ID:</span>
             <span className="value">{report.report_info.report_id}</span>
           </div>
-          <div className="info-row">
+          <div className="info-item">
             <span className="label">Quota Weight:</span>
-            <span className="value">{report.report_info.quota_weight.toLocaleString()}</span>
+            <span className="value">{report.report_info.quota_weight?.toLocaleString() || 'N/A'}</span>
           </div>
         </div>
       </header>
@@ -750,15 +752,15 @@ const LandfillReport: React.FC = () => {
                     // Normal display mode
                     <>
                       <td>{row.receive_ton?.toLocaleString() || ''}</td>
-                      <td>{row.ton.toLocaleString()}</td>
+                      <td>{row.ton?.toLocaleString() || ''}</td>
                       <td>{row.gcv?.toLocaleString() || ''}</td>
                       <td>{row.multi?.toLocaleString() || ''}</td>
                       <td>{row.price?.toLocaleString() || ''}</td>
-                      <td>{row.total_ton.toLocaleString()}</td>
-                      <td>{row.baht_per_ton.toLocaleString()}</td>
-                      <td>{row.amount.toLocaleString()}</td>
-                      <td>{row.vat.toLocaleString()}</td>
-                      <td>{row.total.toLocaleString()}</td>
+                      <td>{row.total_ton?.toLocaleString() || ''}</td>
+                      <td>{row.baht_per_ton?.toLocaleString() || ''}</td>
+                      <td>{row.amount?.toLocaleString() || ''}</td>
+                      <td>{row.vat?.toLocaleString() || ''}</td>
+                      <td>{row.total?.toLocaleString() || ''}</td>
                       <td>{row.remark || ''}</td>
                       <td>
                         <div className="action-buttons">
@@ -817,11 +819,11 @@ const LandfillReport: React.FC = () => {
           </div>
           <div className="info-row">
             <span className="label">Difference Adjustment:</span>
-            <span className="value">{report.additional_info.difference_adjustment.toLocaleString()}</span>
+            <span className="value">{report.additional_info.difference_adjustment?.toLocaleString() || 'N/A'}</span>
           </div>
           <div className="info-row">
             <span className="label">Adjustment Amount:</span>
-            <span className="value">{report.additional_info.adjustment_amount.toLocaleString()}</span>
+            <span className="value">{report.additional_info.adjustment_amount?.toLocaleString() || 'N/A'}</span>
           </div>
         </div>
       </div>

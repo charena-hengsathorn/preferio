@@ -217,6 +217,13 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+.all-reports-section {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
 /* Large Desktop Optimizations */
 @media (min-width: 1400px) {
   .dashboard-main {

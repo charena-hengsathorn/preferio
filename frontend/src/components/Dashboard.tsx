@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import './Dashboard.css';
 import LandfillReport from './LandfillReport';
+import AllLandfillReports from './AllLandfillReports';
 
 const Dashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'landfill'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'landfill' | 'all-reports'>('dashboard');
 
 
   return (
@@ -13,20 +14,26 @@ const Dashboard: React.FC = () => {
         <div className="header-content">
           <div className="header-left">
             <div className="logo">Preferio</div>
-            <nav className="nav-tabs">
-              <button 
-                className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
-                onClick={() => setActiveTab('dashboard')}
-              >
-                Dashboard
-              </button>
-              <button 
-                className={`nav-tab ${activeTab === 'landfill' ? 'active' : ''}`}
-                onClick={() => setActiveTab('landfill')}
-              >
-                Landfill Report
-              </button>
-            </nav>
+                <nav className="nav-tabs">
+                  <button
+                    className={`nav-tab ${activeTab === 'dashboard' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('dashboard')}
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    className={`nav-tab ${activeTab === 'landfill' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('landfill')}
+                  >
+                    Landfill Report
+                  </button>
+                  <button
+                    className={`nav-tab ${activeTab === 'all-reports' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('all-reports')}
+                  >
+                    All Reports
+                  </button>
+                </nav>
           </div>
           <div className="header-right">
             <div className="user-info">
@@ -80,15 +87,21 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'landfill' && (
-          <div className="landfill-section">
-            <div className="section-header">
-              <h1>Landfill Report</h1>
-              <p>TPI POLENE POWER LANDFILL REPORT MANAGEMENT</p>
-            </div>
-            <LandfillReport />
-          </div>
-        )}
+            {activeTab === 'landfill' && (
+              <div className="landfill-section">
+                <div className="section-header">
+                  <h1>Landfill Report</h1>
+                  <p>TPI POLENE POWER LANDFILL REPORT MANAGEMENT</p>
+                </div>
+                <LandfillReport />
+              </div>
+            )}
+
+            {activeTab === 'all-reports' && (
+              <div className="all-reports-section">
+                <AllLandfillReports />
+              </div>
+            )}
       </main>
     </div>
   );

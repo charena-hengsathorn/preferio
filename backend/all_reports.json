@@ -1,0 +1,106 @@
+{
+  "reports": [
+    {
+      "id": "P7922",
+      "name": "TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT",
+      "created_at": "2025-01-15T10:30:00Z",
+      "updated_at": "2025-01-15T10:30:00Z",
+      "report_info": {
+        "company": "บจก. พรีเฟอริโอ้ เทรด",
+        "period": "1-15/09/2025",
+        "report_id": "P7922",
+        "quota_weight": 1700,
+        "reference": "00W1W23100/5",
+        "report_by": "A/C Saraburi",
+        "price_reference": "H265794",
+        "adjustment": "700-527/W2000"
+      },
+      "data_rows": [
+        {
+          "id": 1,
+          "receive_ton": 1557.82,
+          "ton": 1361.87,
+          "gcv": 2579.25,
+          "multi": 0.15,
+          "price": 200.0,
+          "total_ton": 1361.87,
+          "baht_per_ton": 586.89,
+          "amount": 799267.88,
+          "vat": 55948.75,
+          "total": 855216.63,
+          "remark": ""
+        },
+        {
+          "id": 2,
+          "receive_ton": null,
+          "ton": 195.95,
+          "gcv": null,
+          "multi": null,
+          "price": null,
+          "total_ton": 195.95,
+          "baht_per_ton": 100.0,
+          "amount": 19595.0,
+          "vat": 1371.65,
+          "total": 20966.65,
+          "remark": "เหมาจ่าย 100 บาท"
+        }
+      ],
+      "totals": {
+        "receive_ton": 1557.82,
+        "ton": 1557.82,
+        "total_ton": 1557.82,
+        "amount": 818862.88,
+        "vat": 57320.4,
+        "total": 876183.28
+      },
+      "additional_info": {
+        "difference_adjustment": 895746.5,
+        "adjustment_amount": -76883.62
+      }
+    },
+    {
+      "id": "P7923",
+      "name": "TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT",
+      "created_at": "2025-01-16T09:15:00Z",
+      "updated_at": "2025-01-16T09:15:00Z",
+      "report_info": {
+        "company": "บจก. พรีเฟอริโอ้ เทรด",
+        "period": "16-30/09/2025",
+        "report_id": "P7923",
+        "quota_weight": 1700,
+        "reference": "00W1W23100/6",
+        "report_by": "A/C Saraburi",
+        "price_reference": "H265795",
+        "adjustment": "700-527/W2001"
+      },
+      "data_rows": [
+        {
+          "id": 1,
+          "receive_ton": 1200.50,
+          "ton": 1100.25,
+          "gcv": 2400.00,
+          "multi": 0.18,
+          "price": 250.0,
+          "total_ton": 1100.25,
+          "baht_per_ton": 682.00,
+          "amount": 750371.00,
+          "vat": 52525.97,
+          "total": 802896.97,
+          "remark": ""
+        }
+      ],
+      "totals": {
+        "receive_ton": 1200.50,
+        "ton": 1100.25,
+        "total_ton": 1100.25,
+        "amount": 750371.00,
+        "vat": 52525.97,
+        "total": 802896.97
+      },
+      "additional_info": {
+        "difference_adjustment": 750000.00,
+        "adjustment_amount": -52903.97
+      }
+    }
+  ]
+}
