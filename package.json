@@ -1,0 +1,27 @@
+{
+  "name": "preferio",
+  "version": "1.0.0",
+  "description": "Preferio - Full-stack application with Vite React, Next.js, and Python FastAPI",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:nextjs\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:nextjs": "cd nextjs-app && npm run dev",
+    "dev:backend": "cd backend && python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000",
+    "build": "npm run build:frontend && npm run build:nextjs",
+    "build:frontend": "cd frontend && npm run build",
+    "build:nextjs": "cd nextjs-app && npm run build",
+    "install:all": "npm install && cd frontend && npm install && cd ../nextjs-app && npm install",
+    "start": "concurrently \"npm run start:frontend\" \"npm run start:nextjs\" \"npm run start:backend\"",
+    "start:frontend": "cd frontend && npm run preview",
+    "start:nextjs": "cd nextjs-app && npm run start",
+    "start:backend": "cd backend && python3 main.py"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "workspaces": [
+    "frontend",
+    "nextjs-app"
+  ]
+}
