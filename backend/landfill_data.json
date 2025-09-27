@@ -3,7 +3,7 @@
     "company": "บจก. พรีเฟอริโอ้ เทรด",
     "period": "1-15/09/2025",
     "report_id": "P7922",
-    "quota_weight": 1700.0,
+    "quota_weight": 1700,
     "reference": "00W1W23100/5",
     "report_by": "A/C Saraburi",
     "price_reference": "H265794",
@@ -26,7 +26,11 @@
     },
     {
       "id": 2,
+      "receive_ton": null,
       "ton": 195.95,
+      "gcv": null,
+      "multi": null,
+      "price": null,
       "total_ton": 195.95,
       "baht_per_ton": 100.0,
       "amount": 19595.0,
@@ -40,7 +44,7 @@
     "ton": 1557.82,
     "total_ton": 1557.82,
     "amount": 818862.88,
-    "vat": 57320.40,
+    "vat": 57320.4,
     "total": 876183.28
   },
   "additional_info": {

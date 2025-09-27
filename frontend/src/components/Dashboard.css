@@ -1,5 +1,6 @@
 .dashboard {
   min-height: 100vh;
+  width: 100%;
   background: #f8f9fa;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
 }
@@ -14,14 +15,12 @@
 }
 
 .header-content {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
   padding: 0 2rem;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   height: 70px;
-  gap: 4rem;
 }
 
 .header-left {
@@ -103,8 +102,7 @@
 }
 
 .dashboard-main {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
   padding: 2rem;
 }
 
@@ -135,12 +133,11 @@
 
 .dashboard-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2rem;
   margin-top: 2rem;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  padding: 0 2rem;
 }
 
 .dashboard-card {
@@ -220,15 +217,65 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Large Desktop Optimizations */
+@media (min-width: 1400px) {
+  .dashboard-main {
+    padding: 2rem;
+  }
+  
+  .header-content {
+    padding: 0 2rem;
+  }
+  
+  .dashboard-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3rem;
+  }
+}
+
+/* Ultra Wide Screen Optimizations */
+@media (min-width: 1920px) {
+  .dashboard-main {
+    padding: 3rem;
+  }
+  
+  .header-content {
+    padding: 0 3rem;
+  }
+  
+  .dashboard-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4rem;
+    padding: 0 3rem;
+  }
+  
+  .dashboard-card {
+    padding: 3rem;
+  }
+  
+  .card-icon {
+    font-size: 4rem;
+  }
+  
+  .dashboard-card h3 {
+    font-size: 1.5rem;
+  }
+  
+  .dashboard-card p {
+    font-size: 1.1rem;
+  }
+}
+
 /* Laptop Optimizations */
-@media (min-width: 1024px) and (max-width: 1366px) {
+@media (min-width: 1024px) and (max-width: 1399px) {
   .dashboard-main {
     padding: 1.5rem;
   }
   
   .dashboard-cards {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.5rem;
+    padding: 0 1.5rem;
   }
   
   .dashboard-card {
@@ -256,8 +303,9 @@
   }
   
   .dashboard-cards {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.5rem;
+    padding: 0 1.5rem;
   }
   
   .header-content {
@@ -299,5 +347,6 @@
   .dashboard-cards {
     grid-template-columns: 1fr;
     gap: 1rem;
+    padding: 0 1rem;
   }
 }

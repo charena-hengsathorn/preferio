@@ -56,11 +56,74 @@ const LandfillReport: React.FC = () => {
     remark: ''
   });
 
+  // Dropdown options - keeping only original data
+  const companyOptions = [
+    'บจก. พรีเฟอริโอ้ เทรด'
+  ];
+
+  const periodOptions = [
+    '1-15/09/2025'
+  ];
+
   const API_BASE = 'http://localhost:8000';
 
   useEffect(() => {
     fetchReport();
   }, []);
+
+  const handleCompanyChange = async (newCompany: string) => {
+    if (!report) return;
+    
+    const updatedReport = {
+      ...report,
+      report_info: {
+        ...report.report_info,
+        company: newCompany
+      }
+    };
+    
+    try {
+      const response = await fetch(`${API_BASE}/landfill-report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedReport),
+      });
+      if (response.ok) {
+        setReport(updatedReport);
+      }
+    } catch (error) {
+      console.error('Error updating company:', error);
+    }
+  };
+
+  const handlePeriodChange = async (newPeriod: string) => {
+    if (!report) return;
+    
+    const updatedReport = {
+      ...report,
+      report_info: {
+        ...report.report_info,
+        period: newPeriod
+      }
+    };
+    
+    try {
+      const response = await fetch(`${API_BASE}/landfill-report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedReport),
+      });
+      if (response.ok) {
+        setReport(updatedReport);
+      }
+    } catch (error) {
+      console.error('Error updating period:', error);
+    }
+  };
 
   const fetchReport = async () => {
     try {
@@ -194,11 +257,27 @@ const LandfillReport: React.FC = () => {
         <div className="report-info">
           <div className="info-row">
             <span className="label">Period:</span>
-            <span className="value">{report.report_info.period}</span>
+            <select 
+              className="dropdown-select"
+              value={report.report_info.period}
+              onChange={(e) => handlePeriodChange(e.target.value)}
+            >
+              {periodOptions.map((period) => (
+                <option key={period} value={period}>{period}</option>
+              ))}
+            </select>
           </div>
           <div className="info-row">
             <span className="label">Company:</span>
-            <span className="value">{report.report_info.company}</span>
+            <select 
+              className="dropdown-select"
+              value={report.report_info.company}
+              onChange={(e) => handleCompanyChange(e.target.value)}
+            >
+              {companyOptions.map((company) => (
+                <option key={company} value={company}>{company}</option>
+              ))}
+            </select>
           </div>
           <div className="info-row">
             <span className="label">Report ID:</span>

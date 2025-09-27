@@ -1,5 +1,5 @@
 .landfill-report {
-  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
   padding: 1rem;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -12,9 +12,7 @@
   border-radius: 12px;
   margin-bottom: 2rem;
   text-align: center;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
 }
 
 .report-header h1 {
@@ -47,6 +45,36 @@
 
 .info-row .value {
   font-weight: 500;
+}
+
+.dropdown-select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: white;
+  font-size: 1rem;
+  padding: 0.5rem;
+  min-width: 200px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropdown-select:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.dropdown-select:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #3498db;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+}
+
+.dropdown-select option {
+  background: #2c3e50;
+  color: white;
+  padding: 0.5rem;
 }
 
 .table-controls {
@@ -140,10 +168,7 @@
   border-radius: 12px;
   margin-bottom: 2rem;
   border: 1px solid #e9ecef;
-  max-width: 1000px;
-  margin-left: auto;
-  margin-right: auto;
-  text-align: center;
+  width: 100%;
 }
 
 .add-row-form h3 {
@@ -196,38 +221,57 @@
 .table-container {
   background: white;
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
-  max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 .landfill-table {
   width: 100%;
+  min-width: 1000px;
   border-collapse: collapse;
   font-size: 0.9rem;
+  table-layout: fixed;
 }
 
 .landfill-table th {
   background: #34495e;
   color: white;
-  padding: 1rem 0.75rem;
+  padding: 0.75rem 0.5rem;
   text-align: center;
   font-weight: 600;
   border-right: 1px solid #2c3e50;
+  font-size: 0.8rem;
 }
+
+.landfill-table th:nth-child(1) { width: 10%; } /* Receive (Ton) */
+.landfill-table th:nth-child(2) { width: 8%; }  /* Ton */
+.landfill-table th:nth-child(3) { width: 8%; }  /* GCV */
+.landfill-table th:nth-child(4) { width: 6%; }  /* Multi */
+.landfill-table th:nth-child(5) { width: 8%; }  /* Price */
+.landfill-table th:nth-child(6) { width: 10%; } /* Total Ton */
+.landfill-table th:nth-child(7) { width: 10%; } /* Baht/Ton */
+.landfill-table th:nth-child(8) { width: 12%; } /* Amount */
+.landfill-table th:nth-child(9) { width: 10%; } /* Vat */
+.landfill-table th:nth-child(10) { width: 12%; } /* Total */
+.landfill-table th:nth-child(11) { width: 8%; }  /* Remark */
+.landfill-table th:nth-child(12) { width: 8%; }  /* Actions */
 
 .landfill-table th:last-child {
   border-right: none;
 }
 
 .landfill-table td {
-  padding: 0.75rem;
+  padding: 0.6rem 0.4rem;
   text-align: center;
   border-bottom: 1px solid #ecf0f1;
   border-right: 1px solid #ecf0f1;
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .landfill-table td:last-child {
@@ -253,9 +297,8 @@
   padding: 2rem;
   border-radius: 12px;
   border: 1px solid #e9ecef;
-  max-width: 1200px;
-  margin: 2rem auto 0 auto;
-  text-align: center;
+  width: 100%;
+  margin-top: 2rem;
 }
 
 .additional-info h3 {
@@ -280,19 +323,33 @@
   color: #7f8c8d;
 }
 
-/* Laptop Optimizations */
-@media (min-width: 1024px) and (max-width: 1366px) {
-  .landfill-report {
-    padding: 1.5rem;
-  }
-  
+/* Large Desktop Optimizations */
+@media (min-width: 1400px) {
   .landfill-table {
-    font-size: 0.9rem;
+    min-width: 1200px;
   }
   
   .landfill-table th,
   .landfill-table td {
     padding: 0.75rem 0.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Laptop Optimizations */
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .landfill-report {
+    padding: 1.5rem;
+  }
+  
+  .landfill-table {
+    min-width: 1000px;
+  }
+  
+  .landfill-table th,
+  .landfill-table td {
+    padding: 0.6rem 0.4rem;
+    font-size: 0.8rem;
   }
   
   .table-controls {
@@ -308,16 +365,17 @@
 /* Tablet Optimizations */
 @media (min-width: 769px) and (max-width: 1023px) {
   .landfill-report {
-    padding: 1.5rem;
+    padding: 1rem;
   }
   
   .landfill-table {
-    font-size: 0.85rem;
+    min-width: 900px;
   }
   
   .landfill-table th,
   .landfill-table td {
-    padding: 0.6rem 0.4rem;
+    padding: 0.5rem 0.3rem;
+    font-size: 0.75rem;
   }
   
   .form-grid {
@@ -336,21 +394,32 @@
   }
 }
 
+/* Mobile Responsive Design */
 @media (max-width: 768px) {
   .landfill-report {
-    padding: 1rem;
+    padding: 0.5rem;
+  }
+  
+  .table-container {
+    border-radius: 8px;
+  }
+  
+  .landfill-table {
+    min-width: 800px;
+  }
+  
+  .landfill-table th,
+  .landfill-table td {
+    padding: 0.4rem 0.2rem;
+    font-size: 0.7rem;
+  }
+  
+  .landfill-table th {
+    font-size: 0.7rem;
   }
   
   .form-grid {
     grid-template-columns: 1fr;
-  }
-  
-  .table-container {
-    overflow-x: auto;
-  }
-  
-  .landfill-table {
-    min-width: 1000px;
   }
   
   .report-info {
@@ -360,9 +429,21 @@
   .table-controls {
     flex-direction: column;
     align-items: center;
+    gap: 1rem;
   }
   
   .controls-left {
     justify-content: center;
+  }
+  
+  .btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+  
+  .dropdown-select {
+    min-width: 150px;
+    font-size: 0.9rem;
+    padding: 0.4rem;
   }
 }
