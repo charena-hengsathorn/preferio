@@ -18,6 +18,7 @@ interface LandfillRow {
 
 interface LandfillReport {
   report_info: {
+    title?: string;
     company: string;
     period: string;
     report_id: string;
@@ -49,6 +50,10 @@ const LandfillReport: React.FC = () => {
   const [pricingType, setPricingType] = useState<'gcv' | 'fixed'>('gcv');
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const [editData, setEditData] = useState<Partial<LandfillRow>>({});
+  const [editingHeader, setEditingHeader] = useState(false);
+  const [headerTitle, setHeaderTitle] = useState('TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT');
+  const [editingQuotaWeight, setEditingQuotaWeight] = useState(false);
+  const [quotaWeightValue, setQuotaWeightValue] = useState<number>(1700);
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
     receive_ton: undefined,
     ton: undefined,
@@ -238,6 +243,19 @@ const LandfillReport: React.FC = () => {
         await createDefaultReport();
       } else {
         setReport(data);
+        // Set header title from report data
+        if (data.report_info?.title) {
+          console.log('Loading title from data:', data.report_info.title);
+          setHeaderTitle(data.report_info.title);
+        } else {
+          // Fallback to default title if no title in data
+          console.log('No title in data, using default');
+          setHeaderTitle('TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT');
+        }
+        // Set quota weight from report data
+        if (data.report_info?.quota_weight) {
+          setQuotaWeightValue(data.report_info.quota_weight);
+        }
       }
     } catch (error) {
       console.error('Error fetching report:', error);
@@ -247,6 +265,7 @@ const LandfillReport: React.FC = () => {
   const createDefaultReport = async () => {
     const defaultReport: LandfillReport = {
       report_info: {
+        title: "TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT",
         company: "บจก. พรีเฟอริโอ้ เทรด",
         period: "1-15/09/2025",
         report_id: "P7922",
@@ -385,6 +404,97 @@ const LandfillReport: React.FC = () => {
     setEditData({});
   };
 
+  const handleEditHeader = () => {
+    setEditingHeader(true);
+  };
+
+  const handleSaveHeader = async () => {
+    try {
+      console.log('Saving header title:', headerTitle);
+      const response = await fetch(`${API_BASE}/landfill-report`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...report,
+          report_info: {
+            ...report?.report_info,
+            title: headerTitle
+          }
+        }),
+      });
+      
+      console.log('Save response status:', response.status);
+      
+      if (response.ok) {
+        console.log('Header saved successfully');
+        setEditingHeader(false);
+        fetchReport(); // Refresh the report data
+      } else {
+        const errorData = await response.json();
+        console.error('Save failed:', errorData);
+        alert('Failed to save header title. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating header:', error);
+      alert('Error saving header title. Please try again.');
+    }
+  };
+
+  const handleCancelHeaderEdit = () => {
+    setEditingHeader(false);
+    setHeaderTitle('TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT');
+  };
+
+  const handleEditQuotaWeight = () => {
+    setEditingQuotaWeight(true);
+    if (report?.report_info?.quota_weight) {
+      setQuotaWeightValue(report.report_info.quota_weight);
+    }
+  };
+
+  const handleSaveQuotaWeight = async () => {
+    try {
+      console.log('Saving quota weight:', quotaWeightValue);
+      const response = await fetch(`${API_BASE}/landfill-report`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...report,
+          report_info: {
+            ...report?.report_info,
+            quota_weight: quotaWeightValue
+          }
+        }),
+      });
+      
+      console.log('Quota weight save response status:', response.status);
+      
+      if (response.ok) {
+        console.log('Quota weight saved successfully');
+        setEditingQuotaWeight(false);
+        fetchReport(); // Refresh the report data
+      } else {
+        const errorData = await response.json();
+        console.error('Quota weight save failed:', errorData);
+        alert('Failed to save quota weight. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating quota weight:', error);
+      alert('Error saving quota weight. Please try again.');
+    }
+  };
+
+  const handleCancelQuotaWeightEdit = () => {
+    setEditingQuotaWeight(false);
+    if (report?.report_info?.quota_weight) {
+      setQuotaWeightValue(report.report_info.quota_weight);
+    }
+  };
+
   const exportToJSON = async () => {
     try {
       const response = await fetch(`${API_BASE}/landfill-report/export`);
@@ -412,7 +522,38 @@ const LandfillReport: React.FC = () => {
     <div className="landfill-report">
       <header className="report-header">
         <div className="header-row">
-          <h1>TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT</h1>
+          {editingHeader ? (
+            <div className="header-edit-container">
+              <input
+                type="text"
+                value={headerTitle}
+                onChange={(e) => setHeaderTitle(e.target.value)}
+                className="header-edit-input"
+                autoFocus
+              />
+              <div className="header-edit-buttons">
+                <button 
+                  className="btn btn-success btn-sm"
+                  onClick={handleSaveHeader}
+                  title="Save Changes"
+                >
+                  ✓
+                </button>
+                <button 
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleCancelHeaderEdit}
+                  title="Cancel Edit"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ) : (
+            <h1 onClick={handleEditHeader} className="editable-header">
+              {headerTitle}
+              <span className="edit-icon" title="Click to edit">✏️</span>
+            </h1>
+          )}
         </div>
         <div className="report-info">
           <div className="info-item">
@@ -445,7 +586,42 @@ const LandfillReport: React.FC = () => {
           </div>
           <div className="info-item">
             <span className="label">Quota Weight:</span>
-            <span className="value">{report.report_info.quota_weight?.toLocaleString() || 'N/A'}</span>
+            {editingQuotaWeight ? (
+              <div className="quota-weight-edit-container">
+                <input
+                  type="number"
+                  value={quotaWeightValue}
+                  onChange={(e) => setQuotaWeightValue(parseFloat(e.target.value) || 0)}
+                  className="quota-weight-edit-input"
+                  autoFocus
+                />
+                <div className="quota-weight-edit-buttons">
+                  <button 
+                    className="btn btn-success btn-sm"
+                    onClick={handleSaveQuotaWeight}
+                    title="Save Changes"
+                  >
+                    ✓
+                  </button>
+                  <button 
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleCancelQuotaWeightEdit}
+                    title="Cancel Edit"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <span 
+                className="value editable-quota-weight" 
+                onClick={handleEditQuotaWeight}
+                title="Click to edit"
+              >
+                {report.report_info.quota_weight?.toLocaleString() || 'N/A'}
+                <span className="edit-icon-small">✏️</span>
+              </span>
+            )}
           </div>
         </div>
       </header>

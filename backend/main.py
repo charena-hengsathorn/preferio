@@ -198,6 +198,29 @@ async def add_landfill_row(row: LandfillRow):
     save_landfill_data(data)
     return {"message": "Row added successfully", "row": row}
 
+@app.put("/landfill-report")
+async def update_landfill_report(report_data: dict):
+    """Update the entire landfill report"""
+    # Recalculate totals if data_rows are provided
+    if 'data_rows' in report_data:
+        total_amount = sum(row.get('amount', 0) for row in report_data['data_rows'])
+        total_vat = sum(row.get('vat', 0) for row in report_data['data_rows'])
+        total_total = sum(row.get('total', 0) for row in report_data['data_rows'])
+        
+        report_data['totals'] = {
+            'receive_ton': sum(row.get('receive_ton', 0) or 0 for row in report_data['data_rows']),
+            'ton': sum(row.get('ton', 0) for row in report_data['data_rows']),
+            'total_ton': sum(row.get('total_ton', 0) for row in report_data['data_rows']),
+            'amount': total_amount,
+            'vat': total_vat,
+            'total': total_total
+        }
+    
+    # Save updated data
+    save_landfill_data(report_data)
+    
+    return {"message": "Report updated successfully"}
+
 @app.put("/landfill-report/row/{row_id}")
 async def update_landfill_row(row_id: int, row: LandfillRow):
     data = load_landfill_data()

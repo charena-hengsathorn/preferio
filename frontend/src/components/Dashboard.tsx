@@ -50,7 +50,7 @@ const Dashboard: React.FC = () => {
           <div className="dashboard-section">
             <div className="section-header">
               <h1>Dashboard</h1>
-              <p>TPI POLENE POWER LANDFILL REPORT MANAGEMENT SYSTEM</p>
+                  <p>PREFERIO TRADE LANDFILL REPORT MANAGEMENT SYSTEM</p>
             </div>
             
             <div className="dashboard-cards">
@@ -91,7 +91,7 @@ const Dashboard: React.FC = () => {
               <div className="landfill-section">
                 <div className="section-header">
                   <h1>Landfill Report</h1>
-                  <p>TPI POLENE POWER LANDFILL REPORT MANAGEMENT</p>
+                  <p>PREFERIO TRADE LANDFILL REPORT MANAGEMENT SYSTEM</p>
                 </div>
                 <LandfillReport />
               </div>
