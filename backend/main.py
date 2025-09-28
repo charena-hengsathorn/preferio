@@ -14,6 +14,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
+        "http://localhost:3001",
         "http://localhost:5173",  # Vite default port
         "https://preferio.vercel.app",  # Vercel production domain
         "https://*.vercel.app"  # All Vercel preview deployments
