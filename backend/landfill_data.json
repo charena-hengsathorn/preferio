@@ -1,16 +1,55 @@
 {
   "report_info": {
-    "title": "Test Title",
-    "company": "Test Company"
+    "title": "TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT",
+    "company": "บจก. พรีเฟอริโอ้ เทรด",
+    "period": "1-15/09/2025",
+    "report_id": "P7922",
+    "quota_weight": 1700,
+    "reference": "00W1W23100/5",
+    "report_by": "A/C Saraburi",
+    "price_reference": "H265794",
+    "adjustment": "700-527/W2000"
   },
-  "data_rows": [],
+  "data_rows": [
+    {
+      "id": 1,
+      "receive_ton": 1557.82,
+      "ton": 1361.87,
+      "gcv": 2579.25,
+      "multi": 0.15,
+      "price": 200.0,
+      "total_ton": 1361.87,
+      "baht_per_ton": 586.89,
+      "amount": 799267.88,
+      "vat": 55948.75,
+      "total": 855216.63,
+      "remark": ""
+    },
+    {
+      "id": 2,
+      "receive_ton": null,
+      "ton": 195.95,
+      "gcv": null,
+      "multi": null,
+      "price": null,
+      "total_ton": 195.95,
+      "baht_per_ton": 100.0,
+      "amount": 19595.0,
+      "vat": 1371.65,
+      "total": 20966.65,
+      "remark": "เหมาจ่าย 100 บาท"
+    }
+  ],
   "totals": {
-    "receive_ton": 0,
-    "ton": 0,
-    "total_ton": 0,
-    "amount": 0,
-    "vat": 0,
-    "total": 0
+    "receive_ton": 1557.82,
+    "ton": 1557.82,
+    "total_ton": 1557.82,
+    "amount": 818862.88,
+    "vat": 57320.4,
+    "total": 876183.28
   },
-  "additional_info": {}
+  "additional_info": {
+    "difference_adjustment": 895746.5,
+    "adjustment_amount": -76883.62
+  }
 }
