@@ -36,26 +36,84 @@ class ItemCreate(BaseModel):
     description: Optional[str] = None
     price: float
 
-# Landfill Report Models
+# Enhanced Landfill Report Models
+class DateRange(BaseModel):
+    start_date: str
+    end_date: str
+    period: str
+
+class SourceInfo(BaseModel):
+    type: str  # 'upload' | 'manual'
+    file_name: Optional[str] = None
+    uploaded_at: Optional[str] = None
+    ocr_confidence: Optional[float] = None
+
+class AuditEntry(BaseModel):
+    id: str
+    action: str  # 'created' | 'updated' | 'locked' | 'unlocked' | 'published'
+    user_id: str
+    timestamp: str
+    changes: Optional[List[dict]] = None
+    comment: Optional[str] = None
+
 class LandfillRow(BaseModel):
     id: Optional[int] = None
+    
+    # Data Source Tracking
+    source: str = "manual"  # 'ocr' | 'manual' | 'calculated'
+    ocr_confidence: Optional[float] = None
+    
+    # Weight Data
     receive_ton: Optional[float] = None
     ton: float
+    total_ton: float
+    
+    # Pricing Configuration
+    pricing_type: str = "gcv"  # 'gcv' | 'fixed'
     gcv: Optional[float] = None
     multi: Optional[float] = None
     price: Optional[float] = None
-    total_ton: float
+    
+    # Calculated Fields
     baht_per_ton: float
     amount: float
     vat: float
     total: float
-    remark: Optional[str] = ""
+    
+    # Metadata
+    remark: str = ""
+    needs_review: bool = False
+    verified_by: Optional[str] = None
 
 class LandfillReport(BaseModel):
+    # Core Identification
+    id: Optional[str] = None
+    version: int = 1
+    status: str = "draft"  # 'draft' | 'locked' | 'published' | 'archived'
+    
+    # Query/Filter Fields
+    company_id: str
+    date_range: DateRange
+    
+    # Source Information
+    source: SourceInfo
+    
+    # User Tracking
+    locked_by: Optional[str] = None
+    locked_at: Optional[str] = None
+    created_by: str = "system"
+    last_modified_by: str = "system"
+    
+    # Report Content (existing structure)
     report_info: dict
     data_rows: List[LandfillRow]
     totals: dict
     additional_info: dict
+    
+    # Audit Trail
+    audit_trail: List[AuditEntry] = []
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
 # All Reports Models
 class ReportSummary(BaseModel):
@@ -159,18 +217,183 @@ async def delete_item(item_id: int):
             return {"message": f"Item {deleted_item.name} deleted successfully"}
     return {"error": "Item not found"}
 
-# Landfill Report Endpoints
+# Enhanced Landfill Report Endpoints
+@app.get("/landfill-reports")
+async def get_reports(
+    company_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    status: Optional[str] = None
+):
+    """Get list of landfill reports with optional filtering"""
+    all_reports = load_all_reports()
+    reports = all_reports.get('reports', [])
+    
+    # Apply filters
+    filtered_reports = []
+    for report in reports:
+        # Company filter
+        if company_id and report.get('company_id') != company_id:
+            continue
+            
+        # Date range filter
+        if start_date and report.get('date_range', {}).get('start_date') < start_date:
+            continue
+        if end_date and report.get('date_range', {}).get('end_date') > end_date:
+            continue
+            
+        # Status filter
+        if status and report.get('status') != status:
+            continue
+            
+        filtered_reports.append(report)
+    
+    return {"reports": filtered_reports}
+
 @app.get("/landfill-report")
 async def get_landfill_report():
+    """Get the current active landfill report (backward compatibility)"""
     data = load_landfill_data()
     if data:
         return data
     return {"message": "No landfill report data found"}
 
+@app.get("/landfill-reports/{report_id}")
+async def get_report_by_id(report_id: str):
+    """Get a specific landfill report by ID"""
+    all_reports = load_all_reports()
+    for report in all_reports.get('reports', []):
+        if report.get('id') == report_id:
+            return report
+    return {"error": "Report not found"}
+
+@app.get("/landfill-reports/{report_id}/versions")
+async def get_report_versions(report_id: str):
+    """Get version history for a report"""
+    # For now, return basic version info
+    # In production, you'd query a versions table
+    return {
+        "report_id": report_id,
+        "versions": [
+            {
+                "version": 1,
+                "created_at": "2025-01-15T10:30:00Z",
+                "created_by": "system",
+                "change_summary": "Initial version"
+            }
+        ]
+    }
+
 @app.post("/landfill-report")
 async def create_landfill_report(report: LandfillReport):
     save_landfill_data(report.dict())
     return {"message": "Landfill report saved successfully", "data": report}
+
+# Locking and Version Control Endpoints
+@app.post("/landfill-reports/{report_id}/lock")
+async def lock_report(report_id: str, user_id: str = "default_user"):
+    """Lock a report for editing by a specific user"""
+    all_reports = load_all_reports()
+    
+    for report in all_reports.get('reports', []):
+        if report.get('id') == report_id:
+            # Check if already locked by another user
+            if report.get('locked_by') and report.get('locked_by') != user_id:
+                return {
+                    "error": "Report is already locked by another user",
+                    "locked_by": report.get('locked_by'),
+                    "locked_at": report.get('locked_at')
+                }
+            
+            # Lock the report
+            report['locked_by'] = user_id
+            report['locked_at'] = datetime.now().isoformat()
+            report['status'] = 'locked'
+            
+            # Add audit entry
+            audit_entry = {
+                "id": f"audit_{len(report.get('audit_trail', [])) + 1}",
+                "action": "locked",
+                "user_id": user_id,
+                "timestamp": datetime.now().isoformat(),
+                "comment": f"Report locked by {user_id}"
+            }
+            report.setdefault('audit_trail', []).append(audit_entry)
+            
+            save_all_reports(all_reports)
+            return {"message": "Report locked successfully", "locked_by": user_id}
+    
+    return {"error": "Report not found"}
+
+@app.post("/landfill-reports/{report_id}/unlock")
+async def unlock_report(report_id: str, user_id: str = "default_user"):
+    """Unlock a report"""
+    all_reports = load_all_reports()
+    
+    for report in all_reports.get('reports', []):
+        if report.get('id') == report_id:
+            if report.get('locked_by') != user_id:
+                return {"error": "You don't have permission to unlock this report"}
+            
+            # Unlock the report
+            report['locked_by'] = None
+            report['locked_at'] = None
+            report['status'] = 'draft'
+            
+            # Add audit entry
+            audit_entry = {
+                "id": f"audit_{len(report.get('audit_trail', [])) + 1}",
+                "action": "unlocked",
+                "user_id": user_id,
+                "timestamp": datetime.now().isoformat(),
+                "comment": f"Report unlocked by {user_id}"
+            }
+            report.setdefault('audit_trail', []).append(audit_entry)
+            
+            save_all_reports(all_reports)
+            return {"message": "Report unlocked successfully"}
+    
+    return {"error": "Report not found"}
+
+@app.post("/landfill-reports/{report_id}/save")
+async def save_report_with_version(report_id: str, report_data: dict, user_id: str = "default_user"):
+    """Save a report with version control"""
+    all_reports = load_all_reports()
+    
+    for report in all_reports.get('reports', []):
+        if report.get('id') == report_id:
+            # Check if user has lock
+            if report.get('locked_by') != user_id:
+                return {"error": "You don't have permission to edit this report"}
+            
+            # Increment version
+            current_version = report.get('version', 1)
+            new_version = current_version + 1
+            
+            # Update report data
+            report.update(report_data)
+            report['version'] = new_version
+            report['last_modified_by'] = user_id
+            report['updated_at'] = datetime.now().isoformat()
+            
+            # Add audit entry
+            audit_entry = {
+                "id": f"audit_{len(report.get('audit_trail', [])) + 1}",
+                "action": "updated",
+                "user_id": user_id,
+                "timestamp": datetime.now().isoformat(),
+                "comment": f"Report updated to version {new_version}"
+            }
+            report.setdefault('audit_trail', []).append(audit_entry)
+            
+            save_all_reports(all_reports)
+            return {
+                "message": "Report saved successfully",
+                "version": new_version,
+                "updated_at": report['updated_at']
+            }
+    
+    return {"error": "Report not found"}
 
 @app.post("/landfill-report/row")
 async def add_landfill_row(row: LandfillRow):

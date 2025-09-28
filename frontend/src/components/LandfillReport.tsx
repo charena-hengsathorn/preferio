@@ -1,19 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import './LandfillReport.css';
 
+
 interface LandfillRow {
   id?: number;
+  
+  // Data Source Tracking
+  source?: 'ocr' | 'manual' | 'calculated';
+  ocr_confidence?: number;
+  
+  // Weight Data
   receive_ton?: number;
   ton: number;
+  total_ton: number;
+  
+  // Pricing Configuration
+  pricing_type?: 'gcv' | 'fixed';
   gcv?: number;
   multi?: number;
   price?: number;
-  total_ton: number;
+  
+  // Calculated Fields
   baht_per_ton: number;
   amount: number;
   vat: number;
   total: number;
+  
+  // Metadata
   remark?: string;
+  needs_review?: boolean;
+  verified_by?: string;
 }
 
 interface LandfillReport {

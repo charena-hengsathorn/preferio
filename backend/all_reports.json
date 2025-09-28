@@ -3,8 +3,35 @@
     {
       "id": "P7922",
       "name": "TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT",
+      "version": 1,
+      "status": "draft",
+      "company_id": "company_001",
+      "date_range": {
+        "start_date": "2025-09-01",
+        "end_date": "2025-09-15",
+        "period": "1-15/09/2025"
+      },
+      "source": {
+        "type": "manual",
+        "file_name": null,
+        "uploaded_at": null,
+        "ocr_confidence": null
+      },
+      "locked_by": null,
+      "locked_at": null,
+      "created_by": "system",
+      "last_modified_by": "system",
       "created_at": "2025-01-15T10:30:00Z",
       "updated_at": "2025-01-15T10:30:00Z",
+      "audit_trail": [
+        {
+          "id": "audit_001",
+          "action": "created",
+          "user_id": "system",
+          "timestamp": "2025-01-15T10:30:00Z",
+          "comment": "Initial report creation"
+        }
+      ],
       "report_info": {
         "company": "บจก. พรีเฟอริโอ้ เทรด",
         "period": "1-15/09/2025",
@@ -18,8 +45,11 @@
       "data_rows": [
         {
           "id": 1,
+          "source": "manual",
+          "ocr_confidence": null,
           "receive_ton": 1557.82,
           "ton": 1361.87,
+          "pricing_type": "gcv",
           "gcv": 2579.25,
           "multi": 0.15,
           "price": 200.0,
@@ -28,12 +58,17 @@
           "amount": 799267.88,
           "vat": 55948.75,
           "total": 855216.63,
-          "remark": ""
+          "remark": "",
+          "needs_review": false,
+          "verified_by": null
         },
         {
           "id": 2,
+          "source": "manual",
+          "ocr_confidence": null,
           "receive_ton": null,
           "ton": 195.95,
+          "pricing_type": "fixed",
           "gcv": null,
           "multi": null,
           "price": null,
@@ -42,7 +77,9 @@
           "amount": 19595.0,
           "vat": 1371.65,
           "total": 20966.65,
-          "remark": "เหมาจ่าย 100 บาท"
+          "remark": "เหมาจ่าย 100 บาท",
+          "needs_review": false,
+          "verified_by": null
         }
       ],
       "totals": {
@@ -61,8 +98,35 @@
     {
       "id": "P7923",
       "name": "TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT",
+      "version": 1,
+      "status": "draft",
+      "company_id": "company_001",
+      "date_range": {
+        "start_date": "2025-09-16",
+        "end_date": "2025-09-30",
+        "period": "16-30/09/2025"
+      },
+      "source": {
+        "type": "manual",
+        "file_name": null,
+        "uploaded_at": null,
+        "ocr_confidence": null
+      },
+      "locked_by": null,
+      "locked_at": null,
+      "created_by": "system",
+      "last_modified_by": "system",
       "created_at": "2025-01-16T09:15:00Z",
       "updated_at": "2025-01-16T09:15:00Z",
+      "audit_trail": [
+        {
+          "id": "audit_002",
+          "action": "created",
+          "user_id": "system",
+          "timestamp": "2025-01-16T09:15:00Z",
+          "comment": "Initial report creation"
+        }
+      ],
       "report_info": {
         "company": "บจก. พรีเฟอริโอ้ เทรด",
         "period": "16-30/09/2025",
