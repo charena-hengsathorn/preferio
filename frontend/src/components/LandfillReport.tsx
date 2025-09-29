@@ -92,6 +92,7 @@ const LandfillReport: React.FC = () => {
   const [currentUser] = useState<string>('default_user');
   const [auditTrail, setAuditTrail] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [attachments, setAttachments] = useState<any[]>([]);
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
     receive_ton: undefined,
     ton: undefined,
@@ -266,6 +267,41 @@ const LandfillReport: React.FC = () => {
     } catch (error) {
       console.error('Error clearing view state:', error);
     }
+  };
+
+  const handleAttachmentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach((file, index) => {
+        formData.append(`attachment_${index}`, file);
+      });
+      formData.append('report_id', report?.id || 'P7922');
+      formData.append('user_id', currentUser);
+
+      const response = await fetch(`${API_BASE}/landfill-reports/${report?.id || 'P7922'}/attachments`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setAttachments(prev => [...prev, ...result.attachments]);
+        console.log('📎 Attachments uploaded successfully');
+        alert(`Successfully uploaded ${files.length} attachment(s)`);
+      } else {
+        console.error('Failed to upload attachments');
+        alert('Failed to upload attachments');
+      }
+    } catch (error) {
+      console.error('Error uploading attachments:', error);
+      alert('Error uploading attachments');
+    }
+
+    // Reset the input
+    event.target.value = '';
   };
 
   // Revision Management Functions
@@ -854,6 +890,23 @@ const LandfillReport: React.FC = () => {
               💾 Save Version
             </button>
           )}
+          
+          <button 
+            className="btn btn-info btn-sm"
+            onClick={() => document.getElementById('attachment-input')?.click()}
+            title="Add attachments to this report"
+          >
+            📎 Attachments
+          </button>
+          
+          <input
+            id="attachment-input"
+            type="file"
+            multiple
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
+            style={{ display: 'none' }}
+            onChange={handleAttachmentUpload}
+          />
           
           <button 
             className="btn btn-danger btn-sm"

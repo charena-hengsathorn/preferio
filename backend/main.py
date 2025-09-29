@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
@@ -492,6 +492,70 @@ async def get_view_state():
         return {"view_state": view_state}
     except Exception as e:
         return {"error": f"Failed to get view state: {str(e)}"}
+
+@app.post("/landfill-reports/{report_id}/attachments")
+async def upload_attachments(report_id: str, request: Request):
+    """Upload attachments for a specific report"""
+    try:
+        form = await request.form()
+        uploaded_files = []
+        
+        # Create attachments directory if it doesn't exist
+        attachments_dir = f"attachments/{report_id}"
+        os.makedirs(attachments_dir, exist_ok=True)
+        
+        # Process each uploaded file
+        for key, file in form.items():
+            if key.startswith('attachment_'):
+                # Generate unique filename
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{timestamp}_{file.filename}"
+                file_path = os.path.join(attachments_dir, filename)
+                
+                # Save file
+                with open(file_path, "wb") as buffer:
+                    content = await file.read()
+                    buffer.write(content)
+                
+                uploaded_files.append({
+                    "id": f"att_{len(uploaded_files) + 1}",
+                    "filename": file.filename,
+                    "saved_filename": filename,
+                    "file_path": file_path,
+                    "size": len(content),
+                    "uploaded_at": datetime.now().isoformat(),
+                    "uploaded_by": form.get('user_id', 'unknown')
+                })
+        
+        # Update the report with attachment info
+        all_reports = load_all_reports()
+        for report in all_reports.get('reports', []):
+            if report.get('id') == report_id:
+                if 'attachments' not in report:
+                    report['attachments'] = []
+                report['attachments'].extend(uploaded_files)
+                save_all_reports(all_reports)
+                break
+        
+        return {
+            "message": f"Successfully uploaded {len(uploaded_files)} attachment(s)",
+            "attachments": uploaded_files
+        }
+    except Exception as e:
+        return {"error": f"Failed to upload attachments: {str(e)}"}
+
+@app.get("/landfill-reports/{report_id}/attachments")
+async def get_attachments(report_id: str):
+    """Get all attachments for a specific report"""
+    try:
+        all_reports = load_all_reports()
+        for report in all_reports.get('reports', []):
+            if report.get('id') == report_id:
+                return {"attachments": report.get('attachments', [])}
+        
+        return {"attachments": []}
+    except Exception as e:
+        return {"error": f"Failed to get attachments: {str(e)}"}
 
 @app.put("/landfill-report/row/{row_id}")
 async def update_landfill_row(row_id: int, row: LandfillRow):

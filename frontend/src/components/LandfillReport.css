@@ -1236,6 +1236,24 @@
   transform: translateY(-1px);
 }
 
+.btn-info {
+  background: #17a2b8;
+  color: white;
+  opacity: 0.9;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-info:hover {
+  background: #138496;
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
 /* Responsive adjustments for revision controls */
 @media (max-width: 768px) {
   .revision-controls {
@@ -1254,7 +1272,8 @@
   
   .btn-warning,
   .btn-success,
-  .btn-danger {
+  .btn-danger,
+  .btn-info {
     font-size: 0.75rem;
     padding: 0.35rem 0.7rem;
   }
