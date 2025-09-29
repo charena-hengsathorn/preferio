@@ -800,6 +800,53 @@ const LandfillReport: React.FC = () => {
 
   return (
     <div className="landfill-report">
+      {/* Revision Management Controls */}
+      <div className="revision-controls">
+        <div className="revision-status">
+          <span className={`status-badge status-${reportStatus}`}>
+            {reportStatus.toUpperCase()}
+          </span>
+          <span className="version-badge">v{reportVersion}</span>
+          {lockedBy && (
+            <span className="lock-info">
+              🔒 Locked by {lockedBy}
+            </span>
+          )}
+        </div>
+        
+        <div className="revision-actions">
+          {reportStatus === 'draft' && !lockedBy && (
+            <button 
+              className="btn btn-warning btn-sm"
+              onClick={lockReport}
+              title="Lock report for editing"
+            >
+              🔒 Lock
+            </button>
+          )}
+          
+          {reportStatus === 'locked' && lockedBy === currentUser && (
+            <button 
+              className="btn btn-warning btn-sm"
+              onClick={unlockReport}
+              title="Unlock report"
+            >
+              🔓 Unlock
+            </button>
+          )}
+          
+          {(reportStatus === 'draft' || (reportStatus === 'locked' && lockedBy === currentUser)) && (
+            <button 
+              className="btn btn-success btn-sm"
+              onClick={saveReportWithVersion}
+              title="Save with version control"
+            >
+              💾 Save Version
+            </button>
+          )}
+        </div>
+      </div>
+
       <header className="report-header">
         <div className="header-row">
           {editingHeader ? (
@@ -1075,52 +1122,6 @@ const LandfillReport: React.FC = () => {
             )}
           </div>
           
-          {/* Revision Management Controls */}
-          <div className="revision-controls">
-            <div className="revision-status">
-              <span className={`status-badge status-${reportStatus}`}>
-                {reportStatus.toUpperCase()}
-              </span>
-              <span className="version-badge">v{reportVersion}</span>
-              {lockedBy && (
-                <span className="lock-info">
-                  🔒 Locked by {lockedBy}
-                </span>
-              )}
-            </div>
-            
-            <div className="revision-actions">
-              {reportStatus === 'draft' && !lockedBy && (
-                <button 
-                  className="btn btn-warning btn-sm"
-                  onClick={lockReport}
-                  title="Lock report for editing"
-                >
-                  🔒 Lock
-                </button>
-              )}
-              
-              {reportStatus === 'locked' && lockedBy === currentUser && (
-                <button 
-                  className="btn btn-warning btn-sm"
-                  onClick={unlockReport}
-                  title="Unlock report"
-                >
-                  🔓 Unlock
-                </button>
-              )}
-              
-              {(reportStatus === 'draft' || (reportStatus === 'locked' && lockedBy === currentUser)) && (
-                <button 
-                  className="btn btn-success btn-sm"
-                  onClick={saveReportWithVersion}
-                  title="Save with version control"
-                >
-                  💾 Save Version
-                </button>
-              )}
-            </div>
-          </div>
         </div>
       </div>
 
