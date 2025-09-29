@@ -51,5 +51,35 @@
   "additional_info": {
     "difference_adjustment": 895746.5,
     "adjustment_amount": -76883.62
+  },
+  "view_state": {
+    "showAddForm": false,
+    "pricingType": "gcv",
+    "editingRow": null,
+    "editData": {},
+    "editingHeader": false,
+    "headerTitle": "TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT",
+    "editingQuotaWeight": false,
+    "quotaWeightValue": 1700,
+    "newRow": {
+      "receive_ton": null,
+      "ton": null,
+      "gcv": null,
+      "multi": null,
+      "price": null,
+      "total_ton": null,
+      "baht_per_ton": null,
+      "amount": null,
+      "vat": null,
+      "total": null,
+      "remark": ""
+    },
+    "lastSaved": "2025-01-15T10:30:00Z",
+    "userPreferences": {
+      "autoSave": true,
+      "showFormulas": false,
+      "showRightPanel": false,
+      "theme": "default"
+    }
   }
 }

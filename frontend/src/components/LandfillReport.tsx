@@ -59,6 +59,19 @@ interface LandfillReport {
   };
 }
 
+// View state interface for saving/restoring
+interface ViewState {
+  showAddForm: boolean;
+  pricingType: 'gcv' | 'fixed';
+  editingRow: number | null;
+  editData: Partial<LandfillRow>;
+  editingHeader: boolean;
+  headerTitle: string;
+  editingQuotaWeight: boolean;
+  quotaWeightValue: number;
+  newRow: Partial<LandfillRow>;
+}
+
 const LandfillReport: React.FC = () => {
   const [report, setReport] = useState<LandfillReport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -70,6 +83,14 @@ const LandfillReport: React.FC = () => {
   const [headerTitle, setHeaderTitle] = useState('TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT');
   const [editingQuotaWeight, setEditingQuotaWeight] = useState(false);
   const [quotaWeightValue, setQuotaWeightValue] = useState<number>(1700);
+  
+  // Revision Management State
+  const [reportVersion, setReportVersion] = useState<number>(1);
+  const [reportStatus, setReportStatus] = useState<'draft' | 'locked' | 'published' | 'archived'>('draft');
+  const [lockedBy, setLockedBy] = useState<string | null>(null);
+  const [lockedAt, setLockedAt] = useState<string | null>(null);
+  const [currentUser] = useState<string>('default_user');
+  const [auditTrail, setAuditTrail] = useState<any[]>([]);
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
     receive_ton: undefined,
     ton: undefined,
@@ -95,9 +116,252 @@ const LandfillReport: React.FC = () => {
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+  // View state management functions
+  const saveViewState = async () => {
+    const viewState: ViewState = {
+      showAddForm,
+      pricingType,
+      editingRow,
+      editData,
+      editingHeader,
+      headerTitle,
+      editingQuotaWeight,
+      quotaWeightValue,
+      newRow
+    };
+    
+    try {
+      const response = await fetch(`${API_BASE}/landfill-report/view-state`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(viewState),
+      });
+      
+      if (response.ok) {
+        console.log('💾 View state saved to backend');
+      } else {
+        console.error('Failed to save view state to backend');
+        // Fallback to localStorage
+        localStorage.setItem('landfill_report_view_state', JSON.stringify(viewState));
+      }
+    } catch (error) {
+      console.error('Error saving view state to backend:', error);
+      // Fallback to localStorage
+      localStorage.setItem('landfill_report_view_state', JSON.stringify(viewState));
+    }
+  };
+
+  const restoreViewState = async () => {
+    try {
+      // Try to get from backend first
+      const response = await fetch(`${API_BASE}/landfill-report/view-state`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const viewState = data.view_state;
+        
+        if (viewState && Object.keys(viewState).length > 0) {
+          setShowAddForm(viewState.showAddForm || false);
+          setPricingType(viewState.pricingType || 'gcv');
+          setEditingRow(viewState.editingRow || null);
+          setEditData(viewState.editData || {});
+          setEditingHeader(viewState.editingHeader || false);
+          setHeaderTitle(viewState.headerTitle || 'TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT');
+          setEditingQuotaWeight(viewState.editingQuotaWeight || false);
+          setQuotaWeightValue(viewState.quotaWeightValue || 1700);
+          setNewRow(viewState.newRow || {
+            receive_ton: undefined,
+            ton: undefined,
+            gcv: undefined,
+            multi: undefined,
+            price: undefined,
+            total_ton: undefined,
+            baht_per_ton: undefined,
+            amount: undefined,
+            vat: undefined,
+            total: undefined,
+            remark: ''
+          });
+          console.log('🔄 View state restored from backend');
+          return;
+        }
+      }
+      
+      // Fallback to localStorage
+      const savedState = localStorage.getItem('landfill_report_view_state');
+      if (savedState) {
+        const viewState: ViewState = JSON.parse(savedState);
+        
+        if (viewState && Object.keys(viewState).length > 0) {
+          setShowAddForm(viewState.showAddForm || false);
+          setPricingType(viewState.pricingType || 'gcv');
+          setEditingRow(viewState.editingRow || null);
+          setEditData(viewState.editData || {});
+          setEditingHeader(viewState.editingHeader || false);
+          setHeaderTitle(viewState.headerTitle || 'TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT');
+          setEditingQuotaWeight(viewState.editingQuotaWeight || false);
+          setQuotaWeightValue(viewState.quotaWeightValue || 1700);
+          setNewRow(viewState.newRow || {
+            receive_ton: undefined,
+            ton: undefined,
+            gcv: undefined,
+            multi: undefined,
+            price: undefined,
+            total_ton: undefined,
+            baht_per_ton: undefined,
+            amount: undefined,
+            vat: undefined,
+            total: undefined,
+            remark: ''
+          });
+          console.log('🔄 View state restored from localStorage');
+        }
+      }
+    } catch (error) {
+      console.error('Error restoring view state:', error);
+    }
+  };
+
+  const clearViewState = async () => {
+    try {
+      // Clear from backend
+      const emptyViewState = {
+        showAddForm: false,
+        pricingType: 'gcv',
+        editingRow: null,
+        editData: {},
+        editingHeader: false,
+        headerTitle: 'TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT',
+        editingQuotaWeight: false,
+        quotaWeightValue: 1700,
+        newRow: {
+          receive_ton: null,
+          ton: null,
+          gcv: null,
+          multi: null,
+          price: null,
+          total_ton: null,
+          baht_per_ton: null,
+          amount: null,
+          vat: null,
+          total: null,
+          remark: ""
+        }
+      };
+      
+      await fetch(`${API_BASE}/landfill-report/view-state`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emptyViewState),
+      });
+      
+      // Also clear localStorage
+      localStorage.removeItem('landfill_report_view_state');
+      console.log('🗑️ View state cleared from backend and localStorage');
+    } catch (error) {
+      console.error('Error clearing view state:', error);
+    }
+  };
+
+  // Revision Management Functions
+  const lockReport = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/landfill-reports/P7922/lock`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id: currentUser })
+      });
+      
+      if (response.ok) {
+        setLockedBy(currentUser);
+        setLockedAt(new Date().toISOString());
+        setReportStatus('locked');
+        console.log('🔒 Report locked successfully');
+      } else {
+        const error = await response.json();
+        console.error('Failed to lock report:', error);
+        alert('Failed to lock report: ' + (error.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error locking report:', error);
+      alert('Error locking report');
+    }
+  };
+
+  const unlockReport = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/landfill-reports/P7922/unlock`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id: currentUser })
+      });
+      
+      if (response.ok) {
+        setLockedBy(null);
+        setLockedAt(null);
+        setReportStatus('draft');
+        console.log('🔓 Report unlocked successfully');
+      } else {
+        const error = await response.json();
+        console.error('Failed to unlock report:', error);
+        alert('Failed to unlock report: ' + (error.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error unlocking report:', error);
+      alert('Error unlocking report');
+    }
+  };
+
+  const saveReportWithVersion = async () => {
+    if (!report) return;
+    
+    try {
+      const response = await fetch(`${API_BASE}/landfill-reports/P7922/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          report_data: report,
+          user_id: currentUser 
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setReportVersion(result.version);
+        setReportStatus('draft');
+        console.log(`💾 Report saved successfully - Version ${result.version}`);
+        alert(`Report saved successfully - Version ${result.version}`);
+      } else {
+        const error = await response.json();
+        console.error('Failed to save report:', error);
+        alert('Failed to save report: ' + (error.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error saving report:', error);
+      alert('Error saving report');
+    }
+  };
+
   useEffect(() => {
     fetchReport();
+    // Restore view state after component mounts
+    restoreViewState();
   }, []);
+
+  // Save view state whenever key states change
+  useEffect(() => {
+    saveViewState();
+  }, [showAddForm, pricingType, editingRow, editingHeader, editingQuotaWeight]);
 
   // Auto-calculate price when GCV, Multi, or Price changes
   useEffect(() => {
@@ -796,6 +1060,67 @@ const LandfillReport: React.FC = () => {
           <button className="btn btn-secondary" onClick={exportToJSON}>
             Export JSON
           </button>
+          <button 
+            className="btn btn-outline"
+            onClick={clearViewState}
+            title="Clear saved view state"
+          >
+            🗑️ Clear View
+          </button>
+          <div className="view-state-indicator">
+            {localStorage.getItem('landfill_report_view_state') && (
+              <span className="saved-indicator" title="View state is saved">
+                💾 Saved
+              </span>
+            )}
+          </div>
+          
+          {/* Revision Management Controls */}
+          <div className="revision-controls">
+            <div className="revision-status">
+              <span className={`status-badge status-${reportStatus}`}>
+                {reportStatus.toUpperCase()}
+              </span>
+              <span className="version-badge">v{reportVersion}</span>
+              {lockedBy && (
+                <span className="lock-info">
+                  🔒 Locked by {lockedBy}
+                </span>
+              )}
+            </div>
+            
+            <div className="revision-actions">
+              {reportStatus === 'draft' && !lockedBy && (
+                <button 
+                  className="btn btn-warning btn-sm"
+                  onClick={lockReport}
+                  title="Lock report for editing"
+                >
+                  🔒 Lock
+                </button>
+              )}
+              
+              {reportStatus === 'locked' && lockedBy === currentUser && (
+                <button 
+                  className="btn btn-warning btn-sm"
+                  onClick={unlockReport}
+                  title="Unlock report"
+                >
+                  🔓 Unlock
+                </button>
+              )}
+              
+              {(reportStatus === 'draft' || (reportStatus === 'locked' && lockedBy === currentUser)) && (
+                <button 
+                  className="btn btn-success btn-sm"
+                  onClick={saveReportWithVersion}
+                  title="Save with version control"
+                >
+                  💾 Save Version
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

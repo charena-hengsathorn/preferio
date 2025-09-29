@@ -56,6 +56,19 @@ class AuditEntry(BaseModel):
     changes: Optional[List[dict]] = None
     comment: Optional[str] = None
 
+class ViewState(BaseModel):
+    showAddForm: bool = False
+    pricingType: str = "gcv"  # 'gcv' | 'fixed'
+    editingRow: Optional[int] = None
+    editData: dict = {}
+    editingHeader: bool = False
+    headerTitle: str = ""
+    editingQuotaWeight: bool = False
+    quotaWeightValue: float = 0.0
+    newRow: dict = {}
+    lastSaved: Optional[str] = None
+    userPreferences: dict = {}
+
 class LandfillRow(BaseModel):
     id: Optional[int] = None
     
@@ -109,6 +122,9 @@ class LandfillReport(BaseModel):
     data_rows: List[LandfillRow]
     totals: dict
     additional_info: dict
+    
+    # View State
+    view_state: Optional[ViewState] = None
     
     # Audit Trail
     audit_trail: List[AuditEntry] = []
@@ -444,6 +460,38 @@ async def update_landfill_report(report_data: dict):
     save_landfill_data(report_data)
     
     return {"message": "Report updated successfully"}
+
+@app.put("/landfill-report/view-state")
+async def update_view_state(view_state: ViewState):
+    """Update the view state for the landfill report"""
+    try:
+        # Load current data
+        with open("landfill_data.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        # Update view state
+        data["view_state"] = view_state.dict()
+        
+        # Save back to file
+        with open("landfill_data.json", "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        
+        return {"message": "View state updated successfully", "view_state": view_state.dict()}
+    except Exception as e:
+        return {"error": f"Failed to update view state: {str(e)}"}
+
+@app.get("/landfill-report/view-state")
+async def get_view_state():
+    """Get the current view state for the landfill report"""
+    try:
+        # Load current data
+        with open("landfill_data.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        view_state = data.get("view_state", {})
+        return {"view_state": view_state}
+    except Exception as e:
+        return {"error": f"Failed to get view state: {str(e)}"}
 
 @app.put("/landfill-report/row/{row_id}")
 async def update_landfill_row(row_id: int, row: LandfillRow):
