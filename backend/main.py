@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Optional
 import uvicorn
@@ -556,6 +557,18 @@ async def get_attachments(report_id: str):
         return {"attachments": []}
     except Exception as e:
         return {"error": f"Failed to get attachments: {str(e)}"}
+
+@app.get("/attachments/{report_id}/{filename}")
+async def get_attachment_file(report_id: str, filename: str):
+    """Serve attachment files"""
+    try:
+        file_path = f"attachments/{report_id}/{filename}"
+        if os.path.exists(file_path):
+            return FileResponse(file_path)
+        else:
+            return {"error": "File not found"}
+    except Exception as e:
+        return {"error": f"Failed to serve file: {str(e)}"}
 
 @app.put("/landfill-report/row/{row_id}")
 async def update_landfill_row(row_id: int, row: LandfillRow):

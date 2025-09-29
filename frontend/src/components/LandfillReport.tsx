@@ -93,6 +93,7 @@ const LandfillReport: React.FC = () => {
   const [auditTrail, setAuditTrail] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [attachments, setAttachments] = useState<any[]>([]);
+  const [showAttachments, setShowAttachments] = useState<boolean>(false);
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
     receive_ton: undefined,
     ton: undefined,
@@ -269,6 +270,18 @@ const LandfillReport: React.FC = () => {
     }
   };
 
+  const fetchAttachments = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/landfill-reports/${report?.id || 'P7922'}/attachments`);
+      if (response.ok) {
+        const data = await response.json();
+        setAttachments(data.attachments || []);
+      }
+    } catch (error) {
+      console.error('Error fetching attachments:', error);
+    }
+  };
+
   const handleAttachmentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -302,6 +315,14 @@ const LandfillReport: React.FC = () => {
 
     // Reset the input
     event.target.value = '';
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   // Revision Management Functions
@@ -393,6 +414,8 @@ const LandfillReport: React.FC = () => {
     fetchReport();
     // Restore view state after component mounts
     restoreViewState();
+    // Fetch existing attachments
+    fetchAttachments();
   }, []);
 
   // Save view state whenever key states change
@@ -893,10 +916,10 @@ const LandfillReport: React.FC = () => {
           
           <button 
             className="btn btn-info btn-sm"
-            onClick={() => document.getElementById('attachment-input')?.click()}
-            title="Add attachments to this report"
+            onClick={() => setShowAttachments(!showAttachments)}
+            title="View and manage attachments"
           >
-            📎 Attachments
+            📎 Attachments ({attachments.length})
           </button>
           
           <input
@@ -917,6 +940,59 @@ const LandfillReport: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Attachment Management Panel */}
+      {showAttachments && (
+        <div className="attachment-panel">
+          <div className="attachment-header">
+            <h3>📎 Report Attachments</h3>
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={() => document.getElementById('attachment-input')?.click()}
+            >
+              + Add Files
+            </button>
+          </div>
+          
+          <div className="attachment-list">
+            {attachments.length === 0 ? (
+              <p className="no-attachments">No attachments yet. Click "Add Files" to upload documents.</p>
+            ) : (
+              attachments.map((attachment, index) => (
+                <div key={attachment.id || index} className="attachment-item">
+                  <div className="attachment-info">
+                    <span className="attachment-name">{attachment.filename}</span>
+                    <span className="attachment-size">{formatFileSize(attachment.size)}</span>
+                    <span className="attachment-date">
+                      {new Date(attachment.uploaded_at).toLocaleDateString()}
+                    </span>
+                    <span className="attachment-user">by {attachment.uploaded_by}</span>
+                  </div>
+                  <div className="attachment-actions">
+                    <button 
+                      className="btn btn-sm btn-outline"
+                      onClick={() => window.open(`${API_BASE}/attachments/${report?.id}/${attachment.saved_filename}`, '_blank')}
+                    >
+                      👁️ View
+                    </button>
+                    <button 
+                      className="btn btn-sm btn-outline"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = `${API_BASE}/attachments/${report?.id}/${attachment.saved_filename}`;
+                        link.download = attachment.filename;
+                        link.click();
+                      }}
+                    >
+                      ⬇️ Download
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       <header className="report-header">
         <div className="header-row">
