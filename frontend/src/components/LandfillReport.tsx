@@ -91,6 +91,7 @@ const LandfillReport: React.FC = () => {
   const [lockedAt, setLockedAt] = useState<string | null>(null);
   const [currentUser] = useState<string>('default_user');
   const [auditTrail, setAuditTrail] = useState<any[]>([]);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
     receive_ton: undefined,
     ton: undefined,
@@ -362,6 +363,12 @@ const LandfillReport: React.FC = () => {
   useEffect(() => {
     saveViewState();
   }, [showAddForm, pricingType, editingRow, editingHeader, editingQuotaWeight]);
+
+  // Track editing state
+  useEffect(() => {
+    const editing = editingHeader || editingQuotaWeight || editingRow !== null || showAddForm;
+    setIsEditing(editing);
+  }, [editingHeader, editingQuotaWeight, editingRow, showAddForm]);
 
   // Auto-calculate price when GCV, Multi, or Price changes
   useEffect(() => {
@@ -803,8 +810,8 @@ const LandfillReport: React.FC = () => {
       {/* Revision Management Controls */}
       <div className="revision-controls">
         <div className="revision-status">
-          <span className={`status-badge status-${reportStatus}`}>
-            {reportStatus.toUpperCase()}
+          <span className={`status-badge status-${isEditing ? 'editing' : 'saved'}`}>
+            {isEditing ? 'EDITING' : 'SAVED'}
           </span>
           <span className="version-badge">v{reportVersion}</span>
           {lockedBy && (
@@ -812,6 +819,9 @@ const LandfillReport: React.FC = () => {
               🔒 Locked by {lockedBy}
             </span>
           )}
+          <span className="last-updated">
+            Last updated: {new Date().toLocaleString()} by {currentUser}
+          </span>
         </div>
         
         <div className="revision-actions">
@@ -844,6 +854,14 @@ const LandfillReport: React.FC = () => {
               💾 Save Version
             </button>
           )}
+          
+          <button 
+            className="btn btn-danger btn-sm"
+            onClick={clearViewState}
+            title="Clear View"
+          >
+            🗑️
+          </button>
         </div>
       </div>
 
@@ -1107,20 +1125,6 @@ const LandfillReport: React.FC = () => {
           <button className="btn btn-secondary" onClick={exportToJSON}>
             Export JSON
           </button>
-          <button 
-            className="btn btn-outline"
-            onClick={clearViewState}
-            title="Clear saved view state"
-          >
-            🗑️ Clear View
-          </button>
-          <div className="view-state-indicator">
-            {localStorage.getItem('landfill_report_view_state') && (
-              <span className="saved-indicator" title="View state is saved">
-                💾 Saved
-              </span>
-            )}
-          </div>
           
         </div>
       </div>
