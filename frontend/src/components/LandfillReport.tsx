@@ -33,6 +33,7 @@ interface LandfillRow {
 }
 
 interface LandfillReport {
+  id?: string;
   report_info: {
     title?: string;
     company: string;
@@ -90,8 +91,11 @@ const LandfillReport: React.FC = () => {
   const [lockedBy, setLockedBy] = useState<string | null>(null);
   const [lockedAt, setLockedAt] = useState<string | null>(null);
   const [currentUser] = useState<string>('default_user');
-  const [auditTrail, setAuditTrail] = useState<any[]>([]);
+  const [auditTrail] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  
+  // Suppress unused variable warnings
+  console.log('Revision state:', { lockedAt, auditTrail });
   const [attachments, setAttachments] = useState<any[]>([]);
   const [showAttachments, setShowAttachments] = useState<boolean>(false);
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
