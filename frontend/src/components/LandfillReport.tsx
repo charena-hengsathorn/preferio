@@ -99,6 +99,7 @@ const LandfillReport: React.FC = () => {
   const [attachments, setAttachments] = useState<any[]>([]);
   const [showAttachments, setShowAttachments] = useState<boolean>(false);
   const [availableReports, setAvailableReports] = useState<any[]>([]);
+  const [isVersionControlLoading, setIsVersionControlLoading] = useState<boolean>(false);
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
     receive_ton: undefined,
     ton: undefined,
@@ -307,8 +308,8 @@ const LandfillReport: React.FC = () => {
         const reportData = await response.json();
         setReport(reportData);
         // Update header title and quota weight from the new report
-        if (reportData.report_info?.title) {
-          setHeaderTitle(reportData.report_info.title);
+        if (reportData.name || reportData.report_info?.title) {
+          setHeaderTitle(reportData.name || reportData.report_info.title);
         }
         if (reportData.report_info?.quota_weight) {
           setQuotaWeightValue(reportData.report_info.quota_weight);
@@ -364,8 +365,10 @@ const LandfillReport: React.FC = () => {
 
   // Revision Management Functions
   const lockReport = async () => {
+    setIsVersionControlLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/landfill-reports/P7922/lock`, {
+      const reportId = report?.id || report?.report_info?.report_id || 'P7922';
+      const response = await fetch(`${API_BASE}/landfill-reports/${reportId}/lock`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -374,24 +377,30 @@ const LandfillReport: React.FC = () => {
       });
       
       if (response.ok) {
-        setLockedBy(currentUser);
-        setLockedAt(new Date().toISOString());
-        setReportStatus('locked');
+        const result = await response.json();
+        setLockedBy(result.locked_by || currentUser);
+        setLockedAt(result.locked_at || new Date().toISOString());
+        setReportStatus(result.status || 'locked');
         console.log('🔒 Report locked successfully');
+        alert('Report locked successfully');
       } else {
         const error = await response.json();
         console.error('Failed to lock report:', error);
-        alert('Failed to lock report: ' + (error.error || 'Unknown error'));
+        alert(`Failed to lock report: ${error.detail || error.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error locking report:', error);
-      alert('Error locking report');
+      alert(`Error locking report: ${error instanceof Error ? error.message : 'Network error'}`);
+    } finally {
+      setIsVersionControlLoading(false);
     }
   };
 
   const unlockReport = async () => {
+    setIsVersionControlLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/landfill-reports/P7922/unlock`, {
+      const reportId = report?.id || report?.report_info?.report_id || 'P7922';
+      const response = await fetch(`${API_BASE}/landfill-reports/${reportId}/unlock`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -400,26 +409,32 @@ const LandfillReport: React.FC = () => {
       });
       
       if (response.ok) {
-        setLockedBy(null);
-        setLockedAt(null);
-        setReportStatus('draft');
+        const result = await response.json();
+        setLockedBy(result.locked_by || null);
+        setLockedAt(result.locked_at || null);
+        setReportStatus(result.status || 'draft');
         console.log('🔓 Report unlocked successfully');
+        alert('Report unlocked successfully');
       } else {
         const error = await response.json();
         console.error('Failed to unlock report:', error);
-        alert('Failed to unlock report: ' + (error.error || 'Unknown error'));
+        alert(`Failed to unlock report: ${error.detail || error.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error unlocking report:', error);
-      alert('Error unlocking report');
+      alert(`Error unlocking report: ${error instanceof Error ? error.message : 'Network error'}`);
+    } finally {
+      setIsVersionControlLoading(false);
     }
   };
 
   const saveReportWithVersion = async () => {
     if (!report) return;
     
+    setIsVersionControlLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/landfill-reports/P7922/save`, {
+      const reportId = report?.id || report?.report_info?.report_id || 'P7922';
+      const response = await fetch(`${API_BASE}/landfill-reports/${reportId}/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -432,18 +447,22 @@ const LandfillReport: React.FC = () => {
       
       if (response.ok) {
         const result = await response.json();
-        setReportVersion(result.version);
-        setReportStatus('draft');
-        console.log(`💾 Report saved successfully - Version ${result.version}`);
-        alert(`Report saved successfully - Version ${result.version}`);
+        setReportVersion(result.version || reportVersion + 1);
+        setReportStatus(result.status || 'draft');
+        setLockedBy(result.locked_by || null);
+        setLockedAt(result.locked_at || null);
+        console.log(`💾 Report saved successfully - Version ${result.version || reportVersion + 1}`);
+        alert(`Report saved successfully - Version ${result.version || reportVersion + 1}`);
       } else {
         const error = await response.json();
         console.error('Failed to save report:', error);
-        alert('Failed to save report: ' + (error.error || 'Unknown error'));
+        alert(`Failed to save report: ${error.detail || error.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error saving report:', error);
-      alert('Error saving report');
+      alert(`Error saving report: ${error instanceof Error ? error.message : 'Network error'}`);
+    } finally {
+      setIsVersionControlLoading(false);
     }
   };
 
@@ -629,9 +648,9 @@ const LandfillReport: React.FC = () => {
       } else {
         setReport(data);
         // Set header title from report data
-        if (data.report_info?.title) {
-          console.log('Loading title from data:', data.report_info.title);
-          setHeaderTitle(data.report_info.title);
+        if (data.name || data.report_info?.title) {
+          console.log('Loading title from data:', data.name || data.report_info.title);
+          setHeaderTitle(data.name || data.report_info.title);
         } else {
           // Fallback to default title if no title in data
           console.log('No title in data, using default');
@@ -640,6 +659,19 @@ const LandfillReport: React.FC = () => {
         // Set quota weight from report data
         if (data.report_info?.quota_weight) {
           setQuotaWeightValue(data.report_info.quota_weight);
+        }
+        // Initialize version control state from the report
+        if (data.version) {
+          setReportVersion(data.version);
+        }
+        if (data.status) {
+          setReportStatus(data.status);
+        }
+        if (data.locked_by) {
+          setLockedBy(data.locked_by);
+        }
+        if (data.locked_at) {
+          setLockedAt(data.locked_at);
         }
       }
     } catch (error) {
@@ -927,9 +959,10 @@ const LandfillReport: React.FC = () => {
             <button 
               className="btn btn-warning btn-sm"
               onClick={lockReport}
+              disabled={isVersionControlLoading}
               title="Lock report for editing"
             >
-              🔒 Lock
+              {isVersionControlLoading ? '⏳' : '🔒'} Lock
             </button>
           )}
           
@@ -937,9 +970,10 @@ const LandfillReport: React.FC = () => {
             <button 
               className="btn btn-warning btn-sm"
               onClick={unlockReport}
+              disabled={isVersionControlLoading}
               title="Unlock report"
             >
-              🔓 Unlock
+              {isVersionControlLoading ? '⏳' : '🔓'} Unlock
             </button>
           )}
           
@@ -947,9 +981,10 @@ const LandfillReport: React.FC = () => {
             <button 
               className="btn btn-success btn-sm"
               onClick={saveReportWithVersion}
+              disabled={isVersionControlLoading}
               title="Save with version control"
             >
-              💾 Save Version
+              {isVersionControlLoading ? '⏳' : '💾'} Save Version
             </button>
           )}
           
@@ -1102,7 +1137,7 @@ const LandfillReport: React.FC = () => {
             >
               {availableReports.map((reportOption) => (
                 <option key={reportOption.id} value={reportOption.id}>
-                  {reportOption.id} - {reportOption.report_info?.title || 'Untitled Report'}
+                  {reportOption.id}
                 </option>
               ))}
             </select>
