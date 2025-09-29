@@ -42,7 +42,47 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+        
       </header>
+
+      {/* Secondary Navigation - only show when landfill report is selected */}
+      {activeTab === 'landfill' && (
+        <div className="secondary-nav">
+          <div className="nav-actions">
+            <button 
+              className="nav-btn"
+              onClick={() => {
+                // TODO: Implement add new report functionality
+                alert('Add New Report functionality coming soon!');
+              }}
+              title="Create a new landfill report"
+            >
+              ➕ Add New Report
+            </button>
+            <button 
+              className="nav-btn"
+              onClick={() => document.getElementById('file-upload-input')?.click()}
+              title="Upload new file with OCR processing"
+            >
+              📁 Upload New File
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden file upload input */}
+      <input
+        id="file-upload-input"
+        type="file"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            alert(`File "${e.target.files[0].name}" selected for OCR processing. This feature will be implemented soon!`);
+            e.target.value = '';
+          }
+        }}
+      />
 
       {/* Main Content */}
       <main className="dashboard-main">
