@@ -1124,9 +1124,32 @@
   color: #7b1fa2;
 }
 
+.status-editing {
+  background: #fff3e0;
+  color: #f57c00;
+  animation: pulse 2s infinite;
+}
+
+.status-saved {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 .version-badge {
-  background: #667eea;
-  color: white;
+  background: #2c3e50;
+  color: royalblue;
   padding: 0.25rem 0.5rem;
   border-radius: 12px;
   font-size: 0.75rem;
@@ -1140,6 +1163,17 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.last-updated {
+  background: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.6);
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 400;
+  margin-left: 0.5rem;
+  opacity: 0.8;
 }
 
 .revision-actions {
@@ -1184,6 +1218,24 @@
   transform: translateY(-1px);
 }
 
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  opacity: 0.9;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
 /* Responsive adjustments for revision controls */
 @media (max-width: 768px) {
   .revision-controls {
@@ -1201,7 +1253,8 @@
   }
   
   .btn-warning,
-  .btn-success {
+  .btn-success,
+  .btn-danger {
     font-size: 0.75rem;
     padding: 0.35rem 0.7rem;
   }
