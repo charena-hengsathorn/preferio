@@ -6,6 +6,7 @@ from typing import List, Optional
 import uvicorn
 import json
 import os
+import time
 from datetime import datetime
 
 app = FastAPI(title="Preferio API", version="1.0.0")
@@ -411,6 +412,80 @@ async def save_report_with_version(report_id: str, report_data: dict, user_id: s
             }
     
     return {"error": "Report not found"}
+
+@app.post("/landfill-reports")
+async def create_new_report(report_data: dict, user_id: str = "default_user"):
+    """Create a new landfill report"""
+    all_reports = load_all_reports()
+    
+    # Generate new report ID
+    existing_ids = [r.get('id', '') for r in all_reports.get('reports', [])]
+    new_id = f"P{int(time.time())}"  # Simple ID generation based on timestamp
+    
+    # Create new report structure
+    new_report = {
+        "id": new_id,
+        "name": report_data.get('title', 'New Landfill Report'),
+        "version": 0,
+        "status": "new",
+        "company_id": report_data.get('company_id', 'company_001'),
+        "date_range": {
+            "start_date": report_data.get('start_date', '2025-01-01'),
+            "end_date": report_data.get('end_date', '2025-01-15'),
+            "period": report_data.get('period', '1-15/01/2025')
+        },
+        "source": {
+            "type": "manual",
+            "file_name": None,
+            "uploaded_at": None,
+            "ocr_confidence": None
+        },
+        "locked_by": None,
+        "locked_at": None,
+        "created_by": user_id,
+        "last_modified_by": user_id,
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
+        "audit_trail": [
+            {
+                "id": f"audit_{int(time.time())}",
+                "action": "created",
+                "user_id": user_id,
+                "timestamp": datetime.now().isoformat(),
+                "comment": "New report created"
+            }
+        ],
+        "report_info": {
+            "company": report_data.get('company', ''),
+            "period": report_data.get('period', '1-15/01/2025'),
+            "report_id": new_id,
+            "quota_weight": report_data.get('quota_weight', 0),
+            "reference": report_data.get('reference', ''),
+            "report_by": report_data.get('report_by', ''),
+            "price_reference": report_data.get('price_reference', ''),
+            "adjustment": report_data.get('adjustment', ''),
+            "title": report_data.get('title', 'New Landfill Report')
+        },
+        "data_rows": [],
+        "totals": {
+            "receive_ton": 0,
+            "ton": 0,
+            "total_ton": 0,
+            "amount": 0,
+            "vat": 0,
+            "total": 0
+        }
+    }
+    
+    # Add to all_reports
+    all_reports.setdefault('reports', []).append(new_report)
+    save_all_reports(all_reports)
+    
+    return {
+        "message": "Report created successfully",
+        "report_id": new_id,
+        "report": new_report
+    }
 
 @app.post("/landfill-report/row")
 async def add_landfill_row(row: LandfillRow):

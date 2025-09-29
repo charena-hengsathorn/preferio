@@ -73,7 +73,11 @@ interface ViewState {
   newRow: Partial<LandfillRow>;
 }
 
-const LandfillReport: React.FC = () => {
+interface LandfillReportProps {
+  onCreateNewReportCallback?: (callback: () => void) => void;
+}
+
+const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallback }) => {
   const [report, setReport] = useState<LandfillReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -87,7 +91,7 @@ const LandfillReport: React.FC = () => {
   
   // Revision Management State
   const [reportVersion, setReportVersion] = useState<number>(1);
-  const [reportStatus, setReportStatus] = useState<'draft' | 'locked' | 'published' | 'archived'>('draft');
+  const [reportStatus, setReportStatus] = useState<'draft' | 'locked' | 'published' | 'archived' | 'new'>('draft');
   const [lockedBy, setLockedBy] = useState<string | null>(null);
   const [lockedAt, setLockedAt] = useState<string | null>(null);
   const [currentUser] = useState<string>('default_user');
@@ -100,6 +104,7 @@ const LandfillReport: React.FC = () => {
   const [showAttachments, setShowAttachments] = useState<boolean>(false);
   const [availableReports, setAvailableReports] = useState<any[]>([]);
   const [isVersionControlLoading, setIsVersionControlLoading] = useState<boolean>(false);
+  const [isNewReportMode, setIsNewReportMode] = useState<boolean>(false);
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
     receive_ton: undefined,
     ton: undefined,
@@ -320,6 +325,59 @@ const LandfillReport: React.FC = () => {
     }
   };
 
+  const createNewReport = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/landfill-reports`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          report_data: {
+            title: 'New Landfill Report',
+            company: 'New Company',
+            company_id: 'company_001',
+            period: '1-15/01/2025',
+            start_date: '2025-01-01',
+            end_date: '2025-01-15',
+            quota_weight: 0,
+            reference: '',
+            report_by: '',
+            price_reference: '',
+            adjustment: ''
+          },
+          user_id: currentUser
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        // Clear the current view and enter new report mode
+        setReport(null);
+        setHeaderTitle('New Landfill Report');
+        setQuotaWeightValue(0);
+        setReportVersion(0);
+        setReportStatus('new');
+        setLockedBy(null);
+        setLockedAt(null);
+        setIsNewReportMode(true);
+        
+        // Refresh available reports
+        await fetchAvailableReports();
+        
+        console.log('✅ New report created:', result.report_id);
+        alert(`New report created: ${result.report_id}`);
+      } else {
+        const error = await response.json();
+        console.error('Failed to create report:', error);
+        alert(`Failed to create report: ${error.detail || error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error creating report:', error);
+      alert(`Error creating report: ${error instanceof Error ? error.message : 'Network error'}`);
+    }
+  };
+
   const handleAttachmentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -474,7 +532,12 @@ const LandfillReport: React.FC = () => {
     fetchAttachments();
     // Fetch available reports for dropdown
     fetchAvailableReports();
-  }, []);
+    
+    // Register the createNewReport callback with the parent
+    if (onCreateNewReportCallback) {
+      onCreateNewReportCallback(createNewReport);
+    }
+  }, [onCreateNewReportCallback]);
 
   // Save view state whenever key states change
   useEffect(() => {
@@ -726,32 +789,96 @@ const LandfillReport: React.FC = () => {
   const addRow = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    
+    // Auto-calculate fields
+    const calculatedRow: LandfillRow = {
+      id: Date.now(), // Generate a temporary ID
+      receive_ton: newRow.receive_ton || 0,
+      ton: newRow.ton || 0,
+      total_ton: newRow.total_ton || 0,
+      pricing_type: pricingType,
+      gcv: newRow.gcv || 0,
+      multi: newRow.multi || 0,
+      price: newRow.price || 0,
+      baht_per_ton: newRow.baht_per_ton || 0,
+      amount: newRow.amount || 0,
+      vat: newRow.vat || 0,
+      total: newRow.total || 0,
+      remark: newRow.remark || '',
+      source: 'manual',
+      ocr_confidence: undefined,
+      needs_review: false,
+      verified_by: undefined
+    };
+    
+    // Auto-calculate baht_per_ton based on pricing type
+    if (pricingType === 'gcv' && calculatedRow.gcv && calculatedRow.multi && calculatedRow.price) {
+      calculatedRow.baht_per_ton = (calculatedRow.gcv * calculatedRow.multi) + calculatedRow.price;
+    } else if (pricingType === 'fixed' && calculatedRow.price) {
+      calculatedRow.baht_per_ton = calculatedRow.price;
+    }
+    
+    // Auto-calculate amount
+    if (calculatedRow.total_ton && calculatedRow.baht_per_ton) {
+      calculatedRow.amount = calculatedRow.total_ton * calculatedRow.baht_per_ton;
+    }
+    
+    // Auto-calculate total
+    if (calculatedRow.amount && calculatedRow.vat) {
+      calculatedRow.total = calculatedRow.amount + calculatedRow.vat;
+    }
+    
+    // Auto-sync Total Ton with Ton
+    if (calculatedRow.ton !== undefined) {
+      calculatedRow.total_ton = calculatedRow.ton;
+    }
+    
     try {
-      const response = await fetch(`${API_BASE}/landfill-report/row`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newRow),
-      });
-      if (response.ok) {
-        setNewRow({
-          receive_ton: undefined,
-          ton: undefined,
-          gcv: undefined,
-          multi: undefined,
-          price: undefined,
-          total_ton: undefined,
-          baht_per_ton: undefined,
-          amount: undefined,
-          vat: undefined,
-          total: undefined,
-          remark: ''
+      if (isNewReportMode) {
+        // In new report mode, add row to local state
+        if (report) {
+          const updatedReport = {
+            ...report,
+            data_rows: [...(report.data_rows || []), calculatedRow]
+          };
+          setReport(updatedReport);
+        }
+        console.log('✅ Row added to new report');
+      } else {
+        // Normal mode - send to backend
+        const response = await fetch(`${API_BASE}/landfill-report/row`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(calculatedRow),
         });
-        setPricingType('gcv');
-        setShowAddForm(false);
-        fetchReport();
+        if (response.ok) {
+          fetchReport();
+        } else {
+          const error = await response.json();
+          console.error('Failed to add row:', error);
+          alert('Failed to add row: ' + (error.error || 'Unknown error'));
+          return;
+        }
       }
+      
+      // Reset form
+      setNewRow({
+        receive_ton: undefined,
+        ton: undefined,
+        gcv: undefined,
+        multi: undefined,
+        price: undefined,
+        total_ton: undefined,
+        baht_per_ton: undefined,
+        amount: undefined,
+        vat: undefined,
+        total: undefined,
+        remark: ''
+      });
+      setPricingType('gcv');
+      setShowAddForm(false);
     } catch (error) {
       console.error('Error adding row:', error);
     } finally {
@@ -940,8 +1067,8 @@ const LandfillReport: React.FC = () => {
       {/* Revision Management Controls */}
       <div className="revision-controls">
         <div className="revision-status">
-          <span className={`status-badge status-${isEditing ? 'editing' : 'saved'}`}>
-            {isEditing ? 'EDITING' : 'SAVED'}
+          <span className={`status-badge status-${isNewReportMode ? 'new' : (isEditing ? 'editing' : 'saved')}`}>
+            {isNewReportMode ? 'NEW' : (isEditing ? 'EDITING' : 'SAVED')}
           </span>
           <span className="version-badge">v{reportVersion}</span>
           {lockedBy && (
@@ -1106,45 +1233,113 @@ const LandfillReport: React.FC = () => {
         <div className="report-info">
           <div className="info-item">
             <span className="label">Period:</span>
-            <select 
-              className="dropdown-select"
-              value={report.report_info.period}
-              onChange={(e) => handlePeriodChange(e.target.value)}
-            >
-              {periodOptions.map((period) => (
-                <option key={period} value={period}>{period}</option>
-              ))}
-            </select>
+            {isNewReportMode ? (
+              <input
+                type="text"
+                className="dropdown-select"
+                value={report?.report_info?.period || ''}
+                onChange={(e) => {
+                  if (report) {
+                    setReport({
+                      ...report,
+                      report_info: {
+                        ...report.report_info,
+                        period: e.target.value
+                      }
+                    });
+                  }
+                }}
+                placeholder="Enter period (e.g., 1-15/01/2025)"
+              />
+            ) : (
+              <select 
+                className="dropdown-select"
+                value={report?.report_info?.period || ''}
+                onChange={(e) => handlePeriodChange(e.target.value)}
+              >
+                {periodOptions.map((period) => (
+                  <option key={period} value={period}>{period}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="info-item">
             <span className="label">Company:</span>
-            <select 
-              className="dropdown-select"
-              value={report.report_info.company}
-              onChange={(e) => handleCompanyChange(e.target.value)}
-            >
-              {companyOptions.map((company) => (
-                <option key={company} value={company}>{company}</option>
-              ))}
-            </select>
+            {isNewReportMode ? (
+              <input
+                type="text"
+                className="dropdown-select"
+                value={report?.report_info?.company || ''}
+                onChange={(e) => {
+                  if (report) {
+                    setReport({
+                      ...report,
+                      report_info: {
+                        ...report.report_info,
+                        company: e.target.value
+                      }
+                    });
+                  }
+                }}
+                placeholder="Enter company name"
+              />
+            ) : (
+              <select 
+                className="dropdown-select"
+                value={report?.report_info?.company || ''}
+                onChange={(e) => handleCompanyChange(e.target.value)}
+              >
+                {companyOptions.map((company) => (
+                  <option key={company} value={company}>{company}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="info-item">
             <span className="label">Report ID:</span>
-            <select 
-              className="dropdown-select"
-              value={report.report_info.report_id}
-              onChange={(e) => handleReportIdChange(e.target.value)}
-            >
-              {availableReports.map((reportOption) => (
-                <option key={reportOption.id} value={reportOption.id}>
-                  {reportOption.id}
-                </option>
-              ))}
-            </select>
+            {isNewReportMode ? (
+              <input
+                type="text"
+                className="dropdown-select"
+                value={report?.report_info?.report_id || ''}
+                onChange={(e) => {
+                  if (report) {
+                    setReport({
+                      ...report,
+                      report_info: {
+                        ...report.report_info,
+                        report_id: e.target.value
+                      }
+                    });
+                  }
+                }}
+                placeholder="Enter report ID (e.g., P7922)"
+              />
+            ) : (
+              <select 
+                className="dropdown-select"
+                value={report?.report_info?.report_id || ''}
+                onChange={(e) => handleReportIdChange(e.target.value)}
+              >
+                {availableReports.map((reportOption) => (
+                  <option key={reportOption.id} value={reportOption.id}>
+                    {reportOption.id}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="info-item">
             <span className="label">Quota Weight:</span>
-            {editingQuotaWeight ? (
+            {isNewReportMode ? (
+              <input
+                type="number"
+                className="dropdown-select"
+                value={quotaWeightValue}
+                onChange={(e) => setQuotaWeightValue(parseFloat(e.target.value) || 0)}
+                placeholder="Enter quota weight"
+              />
+            ) : editingQuotaWeight ? (
               <div className="quota-weight-edit-container">
                 <input
                   type="number"
