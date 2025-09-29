@@ -98,6 +98,7 @@ const LandfillReport: React.FC = () => {
   console.log('Revision state:', { lockedAt, auditTrail });
   const [attachments, setAttachments] = useState<any[]>([]);
   const [showAttachments, setShowAttachments] = useState<boolean>(false);
+  const [availableReports, setAvailableReports] = useState<any[]>([]);
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
     receive_ton: undefined,
     ton: undefined,
@@ -274,6 +275,18 @@ const LandfillReport: React.FC = () => {
     }
   };
 
+  const fetchAvailableReports = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/all-reports`);
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableReports(data.reports || []);
+      }
+    } catch (error) {
+      console.error('Error fetching available reports:', error);
+    }
+  };
+
   const fetchAttachments = async () => {
     try {
       const response = await fetch(`${API_BASE}/landfill-reports/${report?.id || 'P7922'}/attachments`);
@@ -283,6 +296,26 @@ const LandfillReport: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching attachments:', error);
+    }
+  };
+
+  const handleReportIdChange = async (reportId: string) => {
+    // Fetch the selected report
+    try {
+      const response = await fetch(`${API_BASE}/landfill-reports/${reportId}`);
+      if (response.ok) {
+        const reportData = await response.json();
+        setReport(reportData);
+        // Update header title and quota weight from the new report
+        if (reportData.report_info?.title) {
+          setHeaderTitle(reportData.report_info.title);
+        }
+        if (reportData.report_info?.quota_weight) {
+          setQuotaWeightValue(reportData.report_info.quota_weight);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching report:', error);
     }
   };
 
@@ -420,6 +453,8 @@ const LandfillReport: React.FC = () => {
     restoreViewState();
     // Fetch existing attachments
     fetchAttachments();
+    // Fetch available reports for dropdown
+    fetchAvailableReports();
   }, []);
 
   // Save view state whenever key states change
@@ -1060,7 +1095,17 @@ const LandfillReport: React.FC = () => {
           </div>
           <div className="info-item">
             <span className="label">Report ID:</span>
-            <span className="value">{report.report_info.report_id}</span>
+            <select 
+              className="dropdown-select"
+              value={report.report_info.report_id}
+              onChange={(e) => handleReportIdChange(e.target.value)}
+            >
+              {availableReports.map((reportOption) => (
+                <option key={reportOption.id} value={reportOption.id}>
+                  {reportOption.id} - {reportOption.report_info?.title || 'Untitled Report'}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="info-item">
             <span className="label">Quota Weight:</span>
