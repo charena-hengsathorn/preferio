@@ -557,23 +557,9 @@ async def export_landfill_report():
 # All Reports Endpoints
 @app.get("/all-reports")
 async def get_all_reports():
-    """Get list of all landfill reports with summary information"""
+    """Get list of all landfill reports with full revision management data"""
     data = load_all_reports()
-    reports_summary = []
-    
-    for report in data.get('reports', []):
-        summary = {
-            "id": report.get('id'),
-            "name": report.get('name'),
-            "company": report.get('report_info', {}).get('company'),
-            "period": report.get('report_info', {}).get('period'),
-            "created_at": report.get('created_at'),
-            "updated_at": report.get('updated_at'),
-            "total_amount": report.get('totals', {}).get('total', 0)
-        }
-        reports_summary.append(summary)
-    
-    return {"reports": reports_summary}
+    return data
 
 @app.get("/all-reports/{report_id}")
 async def get_report_by_id(report_id: str):
