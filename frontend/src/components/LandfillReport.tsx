@@ -105,6 +105,7 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
   const [availableReports, setAvailableReports] = useState<any[]>([]);
   const [isVersionControlLoading, setIsVersionControlLoading] = useState<boolean>(false);
   const [isNewReportMode, setIsNewReportMode] = useState<boolean>(false);
+  const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
     receive_ton: undefined,
     ton: undefined,
@@ -129,6 +130,15 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
   ];
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+  // Notification system
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setNotification({ message, type });
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      setNotification(null);
+    }, 3000);
+  };
 
   // View state management functions
   const saveViewState = async () => {
@@ -366,15 +376,15 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
         await fetchAvailableReports();
         
         console.log('✅ New report created:', result.report_id);
-        alert(`New report created: ${result.report_id}`);
+        showNotification(`New report created: ${result.report_id}`, 'success');
       } else {
         const error = await response.json();
         console.error('Failed to create report:', error);
-        alert(`Failed to create report: ${error.detail || error.error || 'Unknown error'}`);
+        showNotification(`Failed to create report: ${error.detail || error.error || 'Unknown error'}`, 'error');
       }
     } catch (error) {
       console.error('Error creating report:', error);
-      alert(`Error creating report: ${error instanceof Error ? error.message : 'Network error'}`);
+      showNotification(`Error creating report: ${error instanceof Error ? error.message : 'Network error'}`, 'error');
     }
   };
 
@@ -1064,6 +1074,20 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
 
   return (
     <div className="landfill-report">
+      {/* Notification System */}
+      {notification && (
+        <div className={`notification notification-${notification.type}`}>
+          <span className="notification-message">{notification.message}</span>
+          <button 
+            className="notification-close" 
+            onClick={() => setNotification(null)}
+            title="Close notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      
       {/* Revision Management Controls */}
       <div className="revision-controls">
         <div className="revision-status">
