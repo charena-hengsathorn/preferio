@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './LandfillReport.css';
 
 
@@ -74,10 +74,11 @@ interface ViewState {
 }
 
 interface LandfillReportProps {
-  onCreateNewReportCallback?: (callback: () => void) => void;
+  onCreateNewReportRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallback }) => {
+const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportRef }) => {
+  console.log('🏗️ LandfillReport component rendering, onCreateNewReportRef prop:', !!onCreateNewReportRef);
   const [report, setReport] = useState<LandfillReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -106,6 +107,25 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
   const [isNewReportMode, setIsNewReportMode] = useState<boolean>(false);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+  const [showNewReportPanel, setShowNewReportPanel] = useState<boolean>(false);
+  const [allowPanelOpen, setAllowPanelOpen] = useState<boolean>(false);
+  const createNewReportRef = useRef<(() => void) | null>(null);
+  
+  // Ensure panel is always closed by default
+  useEffect(() => {
+    setShowNewReportPanel(false);
+    setAllowPanelOpen(false);
+  }, []);
+  const [newReportForm, setNewReportForm] = useState({
+    title: 'New Landfill Report',
+    company: 'บจก. พรีเฟอริโอ้ เทรด',
+    period: '1-15/01/2025',
+    quotaWeight: '1700',
+    reportId: 'P7923'
+  });
+  const [previousTitles, setPreviousTitles] = useState<string[]>([]);
+  const [showTitleSuggestions, setShowTitleSuggestions] = useState<boolean>(false);
+  const [filteredTitles, setFilteredTitles] = useState<string[]>([]);
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
     receive_ton: undefined,
     ton: undefined,
@@ -373,9 +393,48 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
         if (uniqueCompanies.length > 0) setCompanyOptions(uniqueCompanies);
         if (uniquePeriods.length > 0) setPeriodOptions(uniquePeriods);
         if (uniqueReportIds.length > 0) setReportIdOptions(uniqueReportIds);
+        
+        // If no report is currently loaded, load the latest one
+        if (!report && reports.length > 0) {
+          await loadLatestReport(reports);
+        }
       }
     } catch (error) {
       console.error('Error fetching available reports:', error);
+    }
+  };
+
+  const loadLatestReport = async (reports: any[]) => {
+    try {
+      // Sort reports by updated_at date (most recent first)
+      const sortedReports = reports.sort((a, b) => {
+        const dateA = new Date(a.updated_at || a.created_at || 0);
+        const dateB = new Date(b.updated_at || b.created_at || 0);
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      const latestReport = sortedReports[0];
+      if (latestReport) {
+        setReport(latestReport);
+        if (latestReport.name || latestReport.report_info?.title) {
+          setHeaderTitle(latestReport.name || latestReport.report_info.title);
+        }
+        if (latestReport.report_info?.quota_weight) {
+          setQuotaWeightValue(latestReport.report_info.quota_weight);
+        }
+        setReportVersion(latestReport.version || 1);
+        setReportStatus(latestReport.status || 'draft');
+        setLockedBy(latestReport.locked_by);
+        setLockedAt(latestReport.locked_at);
+        setIsNewReportMode(false);
+        setHasUnsavedChanges(false);
+        
+        console.log('📄 Loaded latest report:', latestReport.id);
+        showNotification(`Loaded latest report: ${latestReport.id}`, 'success');
+      }
+    } catch (error) {
+      console.error('Error loading latest report:', error);
+      showNotification('Error loading latest report', 'error');
     }
   };
 
@@ -403,7 +462,7 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
       const reports = data.reports || [];
       
       console.log('🔍 Searching for report with:', { period, company, reportId });
-      console.log('📊 Available reports:', reports.map(r => ({ id: r.id, company: r.report_info?.company, period: r.report_info?.period })));
+      console.log('📊 Available reports:', reports.map((r: any) => ({ id: r.id, company: r.report_info?.company, period: r.report_info?.period })));
       
       // Search for a matching report
       const searchPeriod = period || report?.report_info?.period;
@@ -504,7 +563,72 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
     await findAndLoadReport(undefined, undefined, reportId);
   };
 
-  const createNewReport = async () => {
+  const createNewReport = () => {
+    // Store the function in ref for callback registration
+    createNewReportRef.current = createNewReport;
+    
+    // Only allow panel to open when explicitly requested
+    setAllowPanelOpen(true);
+    
+    // Check for unsaved changes first
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        '⚠️ You have unsaved changes!\n\n' +
+        'Do you want to save the current report before creating a new one?\n\n' +
+        'Click "OK" to SAVE first, or "Cancel" to DISCARD and create new.'
+      );
+      
+      if (confirmed) {
+        saveReportWithVersion();
+        showNotification('Current report saved. Opening new report form...', 'info');
+      } else {
+        const confirmNew = window.confirm(
+          '⚠️ Last chance!\n\n' +
+          'Are you sure you want to DISCARD all unsaved changes and create a new report?'
+        );
+        
+        if (!confirmNew) {
+          setAllowPanelOpen(false);
+          return; // User changed their mind
+        }
+      }
+    }
+    
+    // Open the new report panel and fetch previous titles
+    setShowNewReportPanel(true);
+    fetchPreviousTitles();
+  };
+
+  const fetchPreviousTitles = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/all-reports`);
+      if (response.ok) {
+        const data = await response.json();
+        const reports = data.reports || [];
+        
+        // Extract unique titles from previous reports
+        const titles = [...new Set(reports
+          .map((r: any) => r.report_info?.title || r.name)
+          .filter((title: string) => title && title.trim() !== '')
+        )] as string[];
+        
+        setPreviousTitles(titles);
+        console.log('📋 Fetched previous titles:', titles);
+      }
+    } catch (error) {
+      console.error('Error fetching previous titles:', error);
+    }
+  };
+
+  const handleNewReportSubmit = async () => {
+    const { title, company, period, quotaWeight, reportId } = newReportForm;
+    
+    // Validate ReportID format (PXXXX)
+    if (!reportId.match(/^P\d{4}$/)) {
+      showNotification('Invalid Report ID format! Please use format PXXXX (e.g., P7923)', 'error');
+      return;
+    }
+    
     try {
       const response = await fetch(`${API_BASE}/landfill-reports`, {
         method: 'POST',
@@ -513,15 +637,15 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
         },
         body: JSON.stringify({
           report_data: {
-            title: 'New Landfill Report',
-            company: 'New Company',
+            title: title,
+            company: company,
             company_id: 'company_001',
-            period: '1-15/01/2025',
+            period: period,
             start_date: '2025-01-01',
             end_date: '2025-01-15',
-            quota_weight: 0,
+            quota_weight: parseFloat(quotaWeight) || 1700,
             reference: '',
-            report_by: '',
+            report_by: currentUser,
             price_reference: '',
             adjustment: ''
           },
@@ -531,21 +655,86 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
       
       if (response.ok) {
         const result = await response.json();
-        // Clear the current view and enter new report mode
-        setReport(null);
-        setHeaderTitle('New Landfill Report');
-        setQuotaWeightValue(0);
+        
+        // Create a new report object for immediate display
+        const newReport = {
+          id: reportId,
+          name: title,
+          version: 0,
+          status: 'new',
+          company_id: 'company_001',
+          date_range: {
+            start_date: '2025-01-01',
+            end_date: '2025-01-15',
+            period: period
+          },
+          source: {
+            type: 'manual',
+            file_name: null,
+            uploaded_at: null,
+            ocr_confidence: null
+          },
+          locked_by: null,
+          locked_at: null,
+          created_by: currentUser,
+          last_modified_by: currentUser,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          audit_trail: [
+            {
+              id: `audit_${Date.now()}`,
+              action: 'created',
+              user_id: currentUser,
+              timestamp: new Date().toISOString(),
+              comment: 'New report created'
+            }
+          ],
+          report_info: {
+            title: title,
+            company: company,
+            period: period,
+            report_id: reportId,
+            quota_weight: parseFloat(quotaWeight) || 1700,
+            reference: '',
+            report_by: currentUser,
+            price_reference: '',
+            adjustment: ''
+          },
+          data_rows: [],
+          totals: {
+            receive_ton: 0,
+            ton: 0,
+            total_ton: 0,
+            amount: 0,
+            vat: 0,
+            total: 0
+          },
+          additional_info: {
+            difference_adjustment: 0,
+            adjustment_amount: 0
+          }
+        };
+        
+        // Set the new report
+        setReport(newReport);
+        setHeaderTitle(title);
+        setQuotaWeightValue(parseFloat(quotaWeight) || 1700);
         setReportVersion(0);
         setReportStatus('new');
         setLockedBy(null);
         setLockedAt(null);
         setIsNewReportMode(true);
+        setHasUnsavedChanges(false);
         
         // Refresh available reports
         await fetchAvailableReports();
         
         console.log('✅ New report created:', result.report_id);
         showNotification(`New report created: ${result.report_id}`, 'success');
+        
+        // Close the panel
+        setShowNewReportPanel(false);
+        setAllowPanelOpen(false);
       } else {
         const error = await response.json();
         console.error('Failed to create report:', error);
@@ -555,6 +744,38 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
       console.error('Error creating report:', error);
       showNotification(`Error creating report: ${error instanceof Error ? error.message : 'Network error'}`, 'error');
     }
+  };
+
+  const handleNewReportCancel = () => {
+    setShowNewReportPanel(false);
+    setAllowPanelOpen(false);
+    setNewReportForm({
+      title: 'New Landfill Report',
+      company: 'บจก. พรีเฟอริโอ้ เทรด',
+      period: '1-15/01/2025',
+      quotaWeight: '1700',
+      reportId: 'P7923'
+    });
+    setShowTitleSuggestions(false);
+  };
+
+  const handleTitleInputChange = (value: string) => {
+    setNewReportForm({...newReportForm, title: value});
+    
+    if (value.length > 0) {
+      const filtered = previousTitles.filter(title => 
+        title.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredTitles(filtered);
+      setShowTitleSuggestions(filtered.length > 0);
+    } else {
+      setShowTitleSuggestions(false);
+    }
+  };
+
+  const handleTitleSuggestionClick = (title: string) => {
+    setNewReportForm({...newReportForm, title: title});
+    setShowTitleSuggestions(false);
   };
 
   const handleAttachmentUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -705,6 +926,9 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
   };
 
   useEffect(() => {
+    // Ensure panel is closed when component mounts
+    setShowNewReportPanel(false);
+    
     fetchReport();
     // Restore view state after component mounts
     restoreViewState();
@@ -713,11 +937,16 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
     // Fetch available reports for dropdown
     fetchAvailableReports();
     
-    // Register the createNewReport callback with the parent
-    if (onCreateNewReportCallback) {
-      onCreateNewReportCallback(createNewReport);
+    // Callback registration moved to separate useEffect
+  }, []);
+
+  // Expose createNewReport function to parent component via ref
+  useEffect(() => {
+    if (onCreateNewReportRef) {
+      console.log('🔗 Setting up onCreateNewReportRef');
+      onCreateNewReportRef.current = createNewReport;
     }
-  }, [onCreateNewReportCallback]);
+  }, [onCreateNewReportRef]);
   
   // Refresh dropdown options when report changes
   useEffect(() => {
@@ -741,6 +970,7 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
       setHasUnsavedChanges(true);
     }
   }, [editingHeader, editingQuotaWeight, editingRow, showAddForm]);
+
   
   // Track changes to report data rows
   useEffect(() => {
@@ -1972,6 +2202,142 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
           </div>
         </div>
       </div>
+
+      {/* New Report Right Side Panel */}
+      {showNewReportPanel && allowPanelOpen && (
+        <div className="new-report-panel">
+          <div className="panel-header">
+            <h3>🆕 Create New Report</h3>
+            <button 
+              className="close-btn"
+              onClick={handleNewReportCancel}
+              title="Close panel"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div className="panel-content">
+            <form onSubmit={(e) => { e.preventDefault(); handleNewReportSubmit(); }}>
+              <div className="form-group">
+                <label htmlFor="new-report-title">Report Title</label>
+                <div className="autocomplete-container">
+                  <input
+                    id="new-report-title"
+                    type="text"
+                    value={newReportForm.title}
+                    onChange={(e) => handleTitleInputChange(e.target.value)}
+                    onFocus={() => {
+                      if (newReportForm.title.length > 0) {
+                        const filtered = previousTitles.filter(title => 
+                          title.toLowerCase().includes(newReportForm.title.toLowerCase())
+                        );
+                        setFilteredTitles(filtered);
+                        setShowTitleSuggestions(filtered.length > 0);
+                      }
+                    }}
+                    onBlur={() => {
+                      // Delay hiding suggestions to allow clicking on them
+                      setTimeout(() => setShowTitleSuggestions(false), 200);
+                    }}
+                    placeholder="Enter report title"
+                    required
+                    autoComplete="off"
+                  />
+                  {showTitleSuggestions && filteredTitles.length > 0 && (
+                    <div className="autocomplete-suggestions">
+                      {filteredTitles.slice(0, 5).map((title, index) => (
+                        <div
+                          key={index}
+                          className="suggestion-item"
+                          onClick={() => handleTitleSuggestionClick(title)}
+                        >
+                          <span className="suggestion-text">{title}</span>
+                          <span className="suggestion-hint">Click to use</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {previousTitles.length > 0 && (
+                  <small className="form-help">
+                    💡 {previousTitles.length} previous titles available for autocomplete
+                  </small>
+                )}
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="new-report-company">Company</label>
+                <input
+                  id="new-report-company"
+                  type="text"
+                  value={newReportForm.company}
+                  onChange={(e) => setNewReportForm({...newReportForm, company: e.target.value})}
+                  placeholder="Enter company name"
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="new-report-period">Period</label>
+                <input
+                  id="new-report-period"
+                  type="text"
+                  value={newReportForm.period}
+                  onChange={(e) => setNewReportForm({...newReportForm, period: e.target.value})}
+                  placeholder="e.g., 1-15/01/2025"
+                  required
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="new-report-id">Report ID</label>
+                <input
+                  id="new-report-id"
+                  type="text"
+                  value={newReportForm.reportId}
+                  onChange={(e) => setNewReportForm({...newReportForm, reportId: e.target.value})}
+                  placeholder="PXXXX (e.g., P7923)"
+                  pattern="P\d{4}"
+                  title="Format: PXXXX (e.g., P7923)"
+                  required
+                />
+                <small className="form-help">Format: P followed by 4 digits (e.g., P7923)</small>
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="new-report-quota">Quota Weight</label>
+                <input
+                  id="new-report-quota"
+                  type="number"
+                  value={newReportForm.quotaWeight}
+                  onChange={(e) => setNewReportForm({...newReportForm, quotaWeight: e.target.value})}
+                  placeholder="Enter quota weight"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
+              
+              <div className="form-actions">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary"
+                  onClick={handleNewReportCancel}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                >
+                  Create Report
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

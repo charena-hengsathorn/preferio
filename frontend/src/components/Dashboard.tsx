@@ -1,14 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import './Dashboard.css';
 import LandfillReport from './LandfillReport';
 import AllLandfillReports from './AllLandfillReports';
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'landfill' | 'all-reports'>('dashboard');
+  const createNewReportRef = useRef<(() => void) | null>(null);
+  const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
+
+  const showNotification = (message: string, type: 'success' | 'error' | 'info') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
 
 
   return (
     <div className="dashboard">
+      {/* Notification System */}
+      {notification && (
+        <div className={`notification notification-${notification.type}`}>
+          <span className="notification-message">{notification.message}</span>
+        </div>
+      )}
+      
       {/* Header */}
       <header className="dashboard-header">
         <div className="header-content">
@@ -52,8 +66,13 @@ const Dashboard: React.FC = () => {
             <button 
               className="nav-btn"
               onClick={() => {
-                // TODO: Implement add new report functionality
-                alert('Add New Report functionality coming soon!');
+                console.log('🖱️ Add New Report button clicked, ref available:', !!createNewReportRef.current);
+                if (createNewReportRef.current) {
+                  createNewReportRef.current();
+                } else {
+                  console.log('❌ createNewReportRef.current is null, showing loading message');
+                  showNotification('Report system is loading. Please wait a moment and try again.', 'info');
+                }
               }}
               title="Create a new landfill report"
             >
@@ -133,7 +152,7 @@ const Dashboard: React.FC = () => {
                   <h1>Landfill Report</h1>
                   <p>PREFERIO TRADE LANDFILL REPORT MANAGEMENT SYSTEM</p>
                 </div>
-                <LandfillReport />
+                <LandfillReport onCreateNewReportRef={createNewReportRef} />
               </div>
             )}
 
