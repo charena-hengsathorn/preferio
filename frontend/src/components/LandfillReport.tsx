@@ -102,10 +102,10 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
   console.log('Revision state:', { lockedAt, auditTrail });
   const [attachments, setAttachments] = useState<any[]>([]);
   const [showAttachments, setShowAttachments] = useState<boolean>(false);
-  const [availableReports, setAvailableReports] = useState<any[]>([]);
   const [isVersionControlLoading, setIsVersionControlLoading] = useState<boolean>(false);
   const [isNewReportMode, setIsNewReportMode] = useState<boolean>(false);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error' | 'info'} | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
   const [newRow, setNewRow] = useState<Partial<LandfillRow>>({
     receive_ton: undefined,
     ton: undefined,
@@ -120,14 +120,10 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
     remark: ''
   });
 
-  // Dropdown options - keeping only original data
-  const companyOptions = [
-    'บจก. พรีเฟอริโอ้ เทรด'
-  ];
-
-  const periodOptions = [
-    '1-15/09/2025'
-  ];
+  // Dynamic dropdown options - populated from available reports
+  const [companyOptions, setCompanyOptions] = useState<string[]>(['บจก. พรีเฟอริโอ้ เทรด']);
+  const [periodOptions, setPeriodOptions] = useState<string[]>(['1-15/09/2025']);
+  const [reportIdOptions, setReportIdOptions] = useState<string[]>([]);
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -249,7 +245,40 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
   };
 
   const clearViewState = async () => {
+    // Check for unsaved changes first
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        '⚠️ You have unsaved changes that will be lost!\n\n' +
+        'Do you want to save the current version before clearing the view?\n\n' +
+        'Click "OK" to SAVE first, or "Cancel" to DISCARD and clear.'
+      );
+      
+      if (confirmed) {
+        await saveReportWithVersion();
+        showNotification('Report saved. Now clearing view...', 'info');
+      } else {
+        const confirmClear = window.confirm(
+          '⚠️ Last chance!\n\n' +
+          'Are you sure you want to DISCARD all unsaved changes and clear the view?'
+        );
+        
+        if (!confirmClear) {
+          return; // User changed their mind
+        }
+      }
+    }
+    
     try {
+      // Load blank report from backend
+      const response = await fetch(`${API_BASE}/landfill-report/blank-view`);
+      if (response.ok) {
+        const blankReport = await response.json();
+        setReport(blankReport);
+        setHeaderTitle(blankReport.report_info.title);
+        setQuotaWeightValue(blankReport.report_info.quota_weight);
+        console.log('📄 Loaded blank report:', blankReport);
+      }
+      
       // Clear from backend
       const emptyViewState = {
         showAddForm: false,
@@ -257,9 +286,9 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
         editingRow: null,
         editData: {},
         editingHeader: false,
-        headerTitle: 'TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT',
+        headerTitle: 'BLANK LANDFILL REPORT',
         editingQuotaWeight: false,
-        quotaWeightValue: 1700,
+        quotaWeightValue: 0,
         newRow: {
           receive_ton: null,
           ton: null,
@@ -285,9 +314,36 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
       
       // Also clear localStorage
       localStorage.removeItem('landfill_report_view_state');
-      console.log('🗑️ View state cleared from backend and localStorage');
+      
+      // Reset all form states
+      setShowAddForm(false);
+      setPricingType('gcv');
+      setEditingRow(null);
+      setEditData({});
+      setEditingHeader(false);
+      setEditingQuotaWeight(false);
+      setNewRow({
+        receive_ton: undefined,
+        ton: undefined,
+        gcv: undefined,
+        multi: undefined,
+        price: undefined,
+        total_ton: undefined,
+        baht_per_ton: undefined,
+        amount: undefined,
+        vat: undefined,
+        total: undefined,
+        remark: ''
+      });
+      
+      // Clear unsaved changes flag
+      setHasUnsavedChanges(false);
+      
+      console.log('🗑️ View cleared and blank report loaded');
+      showNotification('View cleared - Blank report loaded', 'success');
     } catch (error) {
       console.error('Error clearing view state:', error);
+      showNotification('Error clearing view state', 'error');
     }
   };
 
@@ -296,7 +352,27 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
       const response = await fetch(`${API_BASE}/all-reports`);
       if (response.ok) {
         const data = await response.json();
-        setAvailableReports(data.reports || []);
+        const reports = data.reports || [];
+        
+        // Extract unique values for dropdowns with proper typing
+        const uniqueCompanies = [...new Set(reports.map((r: any) => r.report_info?.company).filter(Boolean))] as string[];
+        const uniquePeriods = [...new Set(reports.map((r: any) => r.report_info?.period || r.date_range?.period).filter(Boolean))] as string[];
+        const uniqueReportIds = [...new Set(reports.map((r: any) => r.id).filter(Boolean))] as string[];
+        
+        // Always include current report's values if they exist
+        if (report?.report_info?.company && !uniqueCompanies.includes(report.report_info.company)) {
+          uniqueCompanies.push(report.report_info.company);
+        }
+        if (report?.report_info?.period && !uniquePeriods.includes(report.report_info.period)) {
+          uniquePeriods.push(report.report_info.period);
+        }
+        if (report?.id && !uniqueReportIds.includes(report.id)) {
+          uniqueReportIds.push(report.id);
+        }
+        
+        if (uniqueCompanies.length > 0) setCompanyOptions(uniqueCompanies);
+        if (uniquePeriods.length > 0) setPeriodOptions(uniquePeriods);
+        if (uniqueReportIds.length > 0) setReportIdOptions(uniqueReportIds);
       }
     } catch (error) {
       console.error('Error fetching available reports:', error);
@@ -315,24 +391,117 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
     }
   };
 
-  const handleReportIdChange = async (reportId: string) => {
-    // Fetch the selected report
+  const findAndLoadReport = async (period?: string, company?: string, reportId?: string) => {
     try {
-      const response = await fetch(`${API_BASE}/landfill-reports/${reportId}`);
-      if (response.ok) {
-        const reportData = await response.json();
-        setReport(reportData);
+      const response = await fetch(`${API_BASE}/all-reports`);
+      if (!response.ok) {
+        showNotification('Failed to load reports', 'error');
+        return;
+      }
+      
+      const data = await response.json();
+      const reports = data.reports || [];
+      
+      console.log('🔍 Searching for report with:', { period, company, reportId });
+      console.log('📊 Available reports:', reports.map(r => ({ id: r.id, company: r.report_info?.company, period: r.report_info?.period })));
+      
+      // Search for a matching report
+      const searchPeriod = period || report?.report_info?.period;
+      const searchCompany = company || report?.report_info?.company;
+      const searchReportId = reportId || report?.report_info?.report_id;
+      
+      console.log('🎯 Search criteria:', { searchPeriod, searchCompany, searchReportId });
+      
+      const foundReport = reports.find((r: any) => {
+        // If reportId is provided, match by ID only
+        if (reportId) {
+          const match = r.id === reportId;
+          console.log(`📋 Checking report ${r.id} for ID match:`, { 
+            reportId: r.id,
+            searchReportId: reportId,
+            match
+          });
+          return match;
+        }
+        
+        // Otherwise, match by period and company
+        const periodMatch = !searchPeriod || r.report_info?.period === searchPeriod || r.date_range?.period === searchPeriod;
+        const companyMatch = !searchCompany || r.report_info?.company === searchCompany;
+        
+        console.log(`📋 Checking report ${r.id}:`, { 
+          periodMatch, 
+          companyMatch,
+          reportPeriod: r.report_info?.period,
+          reportCompany: r.report_info?.company,
+          searchPeriod,
+          searchCompany
+        });
+        
+        return periodMatch && companyMatch;
+      });
+      
+      if (foundReport) {
+        console.log('✅ Found report:', foundReport);
+        setReport(foundReport);
         // Update header title and quota weight from the new report
-        if (reportData.name || reportData.report_info?.title) {
-          setHeaderTitle(reportData.name || reportData.report_info.title);
+        if (foundReport.name || foundReport.report_info?.title) {
+          setHeaderTitle(foundReport.name || foundReport.report_info.title);
         }
-        if (reportData.report_info?.quota_weight) {
-          setQuotaWeightValue(reportData.report_info.quota_weight);
+        if (foundReport.report_info?.quota_weight) {
+          setQuotaWeightValue(foundReport.report_info.quota_weight);
         }
+        setHasUnsavedChanges(false);
+        showNotification(`Loaded report: ${foundReport.id}`, 'success');
+      } else {
+        console.log('❌ No matching report found, trying direct fetch...');
+        
+        // Fallback: Try to fetch the report directly by ID
+        if (reportId) {
+          try {
+            const directResponse = await fetch(`${API_BASE}/landfill-reports/${reportId}`);
+            if (directResponse.ok) {
+              const directReport = await directResponse.json();
+              console.log('✅ Found report via direct fetch:', directReport);
+              setReport(directReport);
+              if (directReport.name || directReport.report_info?.title) {
+                setHeaderTitle(directReport.name || directReport.report_info.title);
+              }
+              if (directReport.report_info?.quota_weight) {
+                setQuotaWeightValue(directReport.report_info.quota_weight);
+              }
+              setHasUnsavedChanges(false);
+              showNotification(`Loaded report: ${directReport.id}`, 'success');
+              return;
+            }
+          } catch (directError) {
+            console.error('Direct fetch failed:', directError);
+          }
+        }
+        
+        showNotification('No matching report found', 'info');
       }
     } catch (error) {
-      console.error('Error fetching report:', error);
+      console.error('Error finding report:', error);
+      showNotification('Error loading report', 'error');
     }
+  };
+
+  const handleReportIdChange = async (reportId: string) => {
+    // Check for unsaved changes
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Do you want to save the current version before switching reports?\n\n' +
+        'Click "OK" to save, or "Cancel" to discard changes.'
+      );
+      
+      if (confirmed) {
+        await saveReportWithVersion();
+      }
+      setHasUnsavedChanges(false);
+    }
+    
+    // Fetch the selected report
+    await findAndLoadReport(undefined, undefined, reportId);
   };
 
   const createNewReport = async () => {
@@ -519,16 +688,17 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
         setReportStatus(result.status || 'draft');
         setLockedBy(result.locked_by || null);
         setLockedAt(result.locked_at || null);
+        setHasUnsavedChanges(false); // Clear unsaved changes flag
         console.log(`💾 Report saved successfully - Version ${result.version || reportVersion + 1}`);
-        alert(`Report saved successfully - Version ${result.version || reportVersion + 1}`);
+        showNotification(`Report saved successfully - Version ${result.version || reportVersion + 1}`, 'success');
       } else {
         const error = await response.json();
         console.error('Failed to save report:', error);
-        alert(`Failed to save report: ${error.detail || error.error || 'Unknown error'}`);
+        showNotification(`Failed to save report: ${error.detail || error.error || 'Unknown error'}`, 'error');
       }
     } catch (error) {
       console.error('Error saving report:', error);
-      alert(`Error saving report: ${error instanceof Error ? error.message : 'Network error'}`);
+      showNotification(`Error saving report: ${error instanceof Error ? error.message : 'Network error'}`, 'error');
     } finally {
       setIsVersionControlLoading(false);
     }
@@ -548,6 +718,13 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
       onCreateNewReportCallback(createNewReport);
     }
   }, [onCreateNewReportCallback]);
+  
+  // Refresh dropdown options when report changes
+  useEffect(() => {
+    if (report) {
+      fetchAvailableReports();
+    }
+  }, [report?.id]);
 
   // Save view state whenever key states change
   useEffect(() => {
@@ -558,7 +735,25 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
   useEffect(() => {
     const editing = editingHeader || editingQuotaWeight || editingRow !== null || showAddForm;
     setIsEditing(editing);
+    
+    // Set unsaved changes flag when user starts editing
+    if (editing) {
+      setHasUnsavedChanges(true);
+    }
   }, [editingHeader, editingQuotaWeight, editingRow, showAddForm]);
+  
+  // Track changes to report data rows
+  useEffect(() => {
+    if (report?.data_rows && report.data_rows.length > 0) {
+      // Mark as having unsaved changes when data changes (after initial load)
+      const timer = setTimeout(() => {
+        if (isEditing) {
+          setHasUnsavedChanges(true);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [report?.data_rows, isEditing]);
 
   // Auto-calculate price when GCV, Multi, or Price changes
   useEffect(() => {
@@ -660,55 +855,41 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
   const handleCompanyChange = async (newCompany: string) => {
     if (!report) return;
     
-    const updatedReport = {
-      ...report,
-      report_info: {
-        ...report.report_info,
-        company: newCompany
+    // Check for unsaved changes
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Do you want to save the current version before changing the company?\n\n' +
+        'Click "OK" to save, or "Cancel" to discard changes.'
+      );
+      
+      if (confirmed) {
+        await saveReportWithVersion();
       }
-    };
-    
-    try {
-      const response = await fetch(`${API_BASE}/landfill-report`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedReport),
-      });
-      if (response.ok) {
-        setReport(updatedReport);
-      }
-    } catch (error) {
-      console.error('Error updating company:', error);
+      setHasUnsavedChanges(false);
     }
+    
+    // Try to find and load a matching report with the new company
+    await findAndLoadReport(undefined, newCompany, undefined);
   };
 
   const handlePeriodChange = async (newPeriod: string) => {
     if (!report) return;
     
-    const updatedReport = {
-      ...report,
-      report_info: {
-        ...report.report_info,
-        period: newPeriod
+    // Check for unsaved changes
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Do you want to save the current version before changing the period?\n\n' +
+        'Click "OK" to save, or "Cancel" to discard changes.'
+      );
+      
+      if (confirmed) {
+        await saveReportWithVersion();
       }
-    };
-    
-    try {
-      const response = await fetch(`${API_BASE}/landfill-report`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedReport),
-      });
-      if (response.ok) {
-        setReport(updatedReport);
-      }
-    } catch (error) {
-      console.error('Error updating period:', error);
+      setHasUnsavedChanges(false);
     }
+    
+    // Try to find and load a matching report with the new period
+    await findAndLoadReport(newPeriod, undefined, undefined);
   };
 
   const fetchReport = async () => {
@@ -889,8 +1070,13 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
       });
       setPricingType('gcv');
       setShowAddForm(false);
+      
+      // Mark as having changes after adding a row
+      setHasUnsavedChanges(true);
+      showNotification('Row added successfully. Remember to save your changes!', 'success');
     } catch (error) {
       console.error('Error adding row:', error);
+      showNotification('Error adding row', 'error');
     } finally {
       setLoading(false);
     }
@@ -1094,6 +1280,11 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
           <span className={`status-badge status-${isNewReportMode ? 'new' : (isEditing ? 'editing' : 'saved')}`}>
             {isNewReportMode ? 'NEW' : (isEditing ? 'EDITING' : 'SAVED')}
           </span>
+          {hasUnsavedChanges && (
+            <span className="status-badge status-warning" title="You have unsaved changes">
+              ⚠️ UNSAVED
+            </span>
+          )}
           <span className="version-badge">v{reportVersion}</span>
           {lockedBy && (
             <span className="lock-info">
@@ -1161,7 +1352,7 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
             onClick={clearViewState}
             title="Clear View"
           >
-            🗑️
+            🗑️ Clear View
           </button>
         </div>
       </div>
@@ -1342,12 +1533,12 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportCallba
             ) : (
               <select 
                 className="dropdown-select"
-                value={report?.report_info?.report_id || ''}
+                value={report?.report_info?.report_id || report?.id || ''}
                 onChange={(e) => handleReportIdChange(e.target.value)}
               >
-                {availableReports.map((reportOption) => (
-                  <option key={reportOption.id} value={reportOption.id}>
-                    {reportOption.id}
+                {reportIdOptions.map((reportId) => (
+                  <option key={reportId} value={reportId}>
+                    {reportId}
                   </option>
                 ))}
               </select>

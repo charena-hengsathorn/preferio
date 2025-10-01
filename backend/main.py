@@ -276,6 +276,60 @@ async def get_landfill_report():
         return data
     return {"message": "No landfill report data found"}
 
+@app.get("/landfill-report/blank-view")
+async def get_blank_landfill_report():
+    """Get a blank/empty landfill report for clear view"""
+    blank_report = {
+        "id": None,
+        "version": 0,
+        "status": "blank",
+        "company_id": "company_001",
+        "date_range": {
+            "start_date": "",
+            "end_date": "",
+            "period": ""
+        },
+        "source": {
+            "type": "manual",
+            "file_name": None,
+            "uploaded_at": None,
+            "ocr_confidence": None
+        },
+        "locked_by": None,
+        "locked_at": None,
+        "created_by": "system",
+        "last_modified_by": "system",
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
+        "audit_trail": [],
+        "report_info": {
+            "title": "BLANK LANDFILL REPORT",
+            "company": "",
+            "period": "",
+            "report_id": "",
+            "quota_weight": 0,
+            "reference": "",
+            "report_by": "",
+            "price_reference": "",
+            "adjustment": ""
+        },
+        "data_rows": [],
+        "totals": {
+            "receive_ton": 0,
+            "ton": 0,
+            "total_ton": 0,
+            "amount": 0,
+            "vat": 0,
+            "total": 0
+        },
+        "additional_info": {
+            "difference_adjustment": 0,
+            "adjustment_amount": 0
+        }
+    }
+    
+    return blank_report
+
 @app.get("/landfill-reports/{report_id}")
 async def get_report_by_id(report_id: str):
     """Get a specific landfill report by ID"""
@@ -284,6 +338,28 @@ async def get_report_by_id(report_id: str):
         if report.get('id') == report_id:
             return report
     return {"error": "Report not found"}
+
+@app.get("/landfill-reports/search/query")
+async def search_reports(
+    period: Optional[str] = None,
+    company: Optional[str] = None,
+    report_id: Optional[str] = None
+):
+    """Search for reports by period, company, and/or report_id"""
+    all_reports = load_all_reports()
+    reports = all_reports.get('reports', [])
+    
+    # Filter reports based on provided parameters
+    filtered_reports = []
+    for report in reports:
+        period_match = not period or report.get('report_info', {}).get('period') == period or report.get('date_range', {}).get('period') == period
+        company_match = not company or report.get('report_info', {}).get('company') == company
+        report_id_match = not report_id or report.get('id') == report_id
+        
+        if period_match and company_match and report_id_match:
+            filtered_reports.append(report)
+    
+    return {"reports": filtered_reports, "count": len(filtered_reports)}
 
 @app.get("/landfill-reports/{report_id}/versions")
 async def get_report_versions(report_id: str):

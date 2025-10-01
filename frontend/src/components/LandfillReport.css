@@ -1141,6 +1141,14 @@
   animation: pulse 2s infinite;
 }
 
+.status-warning {
+  background: #fff3e0;
+  color: #ff6f00;
+  border: 2px solid #ff9800;
+  animation: pulse 2s infinite;
+  font-weight: 700;
+}
+
 @keyframes pulse {
   0% {
     opacity: 1;
