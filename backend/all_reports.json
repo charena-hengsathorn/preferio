@@ -33,7 +33,8 @@
         }
       ],
       "report_info": {
-        "company": "บจก. พรีเฟอริโอ้ เทรด",
+        "title": "TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT",
+        "company": "\u0e1a\u0e08\u0e01. \u0e1e\u0e23\u0e35\u0e40\u0e1f\u0e2d\u0e23\u0e34\u0e42\u0e2d\u0e49 \u0e40\u0e17\u0e23\u0e14",
         "period": "1-15/09/2025",
         "report_id": "P7922",
         "quota_weight": 1700,
@@ -45,11 +46,8 @@
       "data_rows": [
         {
           "id": 1,
-          "source": "manual",
-          "ocr_confidence": null,
           "receive_ton": 1557.82,
           "ton": 1361.87,
-          "pricing_type": "gcv",
           "gcv": 2579.25,
           "multi": 0.15,
           "price": 200.0,
@@ -58,17 +56,12 @@
           "amount": 799267.88,
           "vat": 55948.75,
           "total": 855216.63,
-          "remark": "",
-          "needs_review": false,
-          "verified_by": null
+          "remark": ""
         },
         {
           "id": 2,
-          "source": "manual",
-          "ocr_confidence": null,
           "receive_ton": null,
           "ton": 195.95,
-          "pricing_type": "fixed",
           "gcv": null,
           "multi": null,
           "price": null,
@@ -77,9 +70,7 @@
           "amount": 19595.0,
           "vat": 1371.65,
           "total": 20966.65,
-          "remark": "เหมาจ่าย 100 บาท",
-          "needs_review": false,
-          "verified_by": null
+          "remark": "\u0e40\u0e2b\u0e21\u0e32\u0e08\u0e48\u0e32\u0e22 100 \u0e1a\u0e32\u0e17"
         }
       ],
       "totals": {
@@ -93,6 +84,47 @@
       "additional_info": {
         "difference_adjustment": 895746.5,
         "adjustment_amount": -76883.62
+      },
+      "attachments": [
+        {
+          "id": "att_1",
+          "filename": "15.พรีเฟอริโอ้ Landfill งวด 1-15-09-2025.pdf",
+          "saved_filename": "20251013_105135_15.พรีเฟอริโอ้ Landfill งวด 1-15-09-2025.pdf",
+          "file_path": "attachments/P7922/20251013_105135_15.พรีเฟอริโอ้ Landfill งวด 1-15-09-2025.pdf",
+          "size": 374,
+          "uploaded_at": "2025-10-13T10:51:35.000000",
+          "uploaded_by": "system"
+        }
+      ],
+      "view_state": {
+        "showAddForm": false,
+        "pricingType": "gcv",
+        "editingRow": null,
+        "editData": {},
+        "editingHeader": false,
+        "headerTitle": "TPI POLENE POWER PUBLIC COMPANY LIMITED LANDFILL REPORT",
+        "editingQuotaWeight": false,
+        "quotaWeightValue": 1700,
+        "newRow": {
+          "receive_ton": null,
+          "ton": null,
+          "gcv": null,
+          "multi": null,
+          "price": null,
+          "total_ton": null,
+          "baht_per_ton": null,
+          "amount": null,
+          "vat": null,
+          "total": null,
+          "remark": ""
+        },
+        "lastSaved": "2025-01-15T10:30:00Z",
+        "userPreferences": {
+          "autoSave": true,
+          "showFormulas": false,
+          "showRightPanel": false,
+          "theme": "default"
+        }
       }
     },
     {
@@ -128,7 +160,7 @@
         }
       ],
       "report_info": {
-        "company": "บจก. พรีเฟอริโอ้ เทรด",
+        "company": "\u0e1a\u0e08\u0e01. \u0e1e\u0e23\u0e35\u0e40\u0e1f\u0e2d\u0e23\u0e34\u0e42\u0e2d\u0e49 \u0e40\u0e17\u0e23\u0e14",
         "period": "16-30/09/2025",
         "report_id": "P7923",
         "quota_weight": 1700,
@@ -140,31 +172,32 @@
       "data_rows": [
         {
           "id": 1,
-          "receive_ton": 1200.50,
+          "receive_ton": 1200.5,
           "ton": 1100.25,
-          "gcv": 2400.00,
+          "gcv": 2400.0,
           "multi": 0.18,
           "price": 250.0,
           "total_ton": 1100.25,
-          "baht_per_ton": 682.00,
-          "amount": 750371.00,
+          "baht_per_ton": 682.0,
+          "amount": 750371.0,
           "vat": 52525.97,
           "total": 802896.97,
           "remark": ""
         }
       ],
       "totals": {
-        "receive_ton": 1200.50,
+        "receive_ton": 1200.5,
         "ton": 1100.25,
         "total_ton": 1100.25,
-        "amount": 750371.00,
+        "amount": 750371.0,
         "vat": 52525.97,
         "total": 802896.97
       },
       "additional_info": {
-        "difference_adjustment": 750000.00,
+        "difference_adjustment": 750000.0,
         "adjustment_amount": -52903.97
-      }
+      },
+      "attachments": []
     }
   ]
 }

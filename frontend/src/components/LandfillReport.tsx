@@ -113,6 +113,7 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportRef })
   
   // Ensure panel is always closed by default
   useEffect(() => {
+    console.log('🔧 Setting panel states to false on mount');
     setShowNewReportPanel(false);
     setAllowPanelOpen(false);
   }, []);
@@ -439,8 +440,13 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportRef })
   };
 
   const fetchAttachments = async () => {
+    if (!report?.id) {
+      console.log('⚠️ No report ID available, skipping attachment fetch');
+      return;
+    }
+    
     try {
-      const response = await fetch(`${API_BASE}/landfill-reports/${report?.id || 'P7922'}/attachments`);
+      const response = await fetch(`${API_BASE}/landfill-reports/${report.id}/attachments`);
       if (response.ok) {
         const data = await response.json();
         setAttachments(data.attachments || []);
@@ -564,6 +570,9 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportRef })
   };
 
   const createNewReport = () => {
+    console.log('🚨 createNewReport function called!');
+    console.trace('Stack trace for createNewReport call');
+    
     // Store the function in ref for callback registration
     createNewReportRef.current = createNewReport;
     
@@ -595,6 +604,7 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportRef })
     }
     
     // Open the new report panel and fetch previous titles
+    console.log('🚨 Setting showNewReportPanel to true');
     setShowNewReportPanel(true);
     fetchPreviousTitles();
   };
@@ -782,15 +792,21 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportRef })
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    if (!report?.id) {
+      alert('No report loaded. Please load or create a report first.');
+      event.target.value = '';
+      return;
+    }
+
     try {
       const formData = new FormData();
       Array.from(files).forEach((file, index) => {
         formData.append(`attachment_${index}`, file);
       });
-      formData.append('report_id', report?.id || 'P7922');
+      formData.append('report_id', report.id);
       formData.append('user_id', currentUser);
 
-      const response = await fetch(`${API_BASE}/landfill-reports/${report?.id || 'P7922'}/attachments`, {
+      const response = await fetch(`${API_BASE}/landfill-reports/${report.id}/attachments`, {
         method: 'POST',
         body: formData,
       });
@@ -798,15 +814,26 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportRef })
       if (response.ok) {
         const result = await response.json();
         setAttachments(prev => [...prev, ...result.attachments]);
+        
+        // Update version and audit trail if provided by backend
+        if (result.version) {
+          setReportVersion(result.version);
+        }
+        if (result.audit_entry) {
+          // Audit trail updated on backend, will be reflected on next fetch
+          console.log('📝 Audit trail updated:', result.audit_entry);
+        }
+        
         console.log('📎 Attachments uploaded successfully');
-        alert(`Successfully uploaded ${files.length} attachment(s)`);
+        showNotification(`Successfully uploaded ${files.length} attachment(s)`, 'success');
       } else {
-        console.error('Failed to upload attachments');
-        alert('Failed to upload attachments');
+        const errorData = await response.json();
+        console.error('Failed to upload attachments:', errorData);
+        showNotification(`Failed to upload attachments: ${errorData.error || 'Unknown error'}`, 'error');
       }
     } catch (error) {
       console.error('Error uploading attachments:', error);
-      alert('Error uploading attachments');
+      showNotification('Error uploading attachments', 'error');
     }
 
     // Reset the input
@@ -823,9 +850,14 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportRef })
 
   // Revision Management Functions
   const lockReport = async () => {
+    const reportId = report?.id || report?.report_info?.report_id;
+    if (!reportId) {
+      showNotification('No report loaded to lock', 'error');
+      return;
+    }
+    
     setIsVersionControlLoading(true);
     try {
-      const reportId = report?.id || report?.report_info?.report_id || 'P7922';
       const response = await fetch(`${API_BASE}/landfill-reports/${reportId}/lock`, {
         method: 'POST',
         headers: {
@@ -855,9 +887,14 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportRef })
   };
 
   const unlockReport = async () => {
+    const reportId = report?.id || report?.report_info?.report_id;
+    if (!reportId) {
+      showNotification('No report loaded to unlock', 'error');
+      return;
+    }
+    
     setIsVersionControlLoading(true);
     try {
-      const reportId = report?.id || report?.report_info?.report_id || 'P7922';
       const response = await fetch(`${API_BASE}/landfill-reports/${reportId}/unlock`, {
         method: 'POST',
         headers: {
@@ -887,11 +924,19 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportRef })
   };
 
   const saveReportWithVersion = async () => {
-    if (!report) return;
+    if (!report) {
+      showNotification('No report to save', 'error');
+      return;
+    }
+    
+    const reportId = report?.id || report?.report_info?.report_id;
+    if (!reportId) {
+      showNotification('Report ID is missing', 'error');
+      return;
+    }
     
     setIsVersionControlLoading(true);
     try {
-      const reportId = report?.id || report?.report_info?.report_id || 'P7922';
       const response = await fetch(`${API_BASE}/landfill-reports/${reportId}/save`, {
         method: 'POST',
         headers: {
@@ -927,24 +972,29 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportRef })
 
   useEffect(() => {
     // Ensure panel is closed when component mounts
+    console.log('🔧 Setting showNewReportPanel to false in main useEffect');
     setShowNewReportPanel(false);
     
     fetchReport();
     // Restore view state after component mounts
     restoreViewState();
-    // Fetch existing attachments
-    fetchAttachments();
     // Fetch available reports for dropdown
     fetchAvailableReports();
     
     // Callback registration moved to separate useEffect
+    // NOTE: fetchAttachments() moved to separate useEffect that watches report.id
   }, []);
 
   // Expose createNewReport function to parent component via ref
   useEffect(() => {
     if (onCreateNewReportRef) {
       console.log('🔗 Setting up onCreateNewReportRef');
-      onCreateNewReportRef.current = createNewReport;
+      // Store a safe wrapper function that only executes when explicitly called
+      onCreateNewReportRef.current = () => {
+        console.log('📞 createNewReport callback called from Dashboard');
+        createNewReport();
+      };
+      console.log('✅ createNewReport wrapper function stored in ref');
     }
   }, [onCreateNewReportRef]);
   
@@ -952,6 +1002,17 @@ const LandfillReport: React.FC<LandfillReportProps> = ({ onCreateNewReportRef })
   useEffect(() => {
     if (report) {
       fetchAvailableReports();
+    }
+  }, [report?.id]);
+
+  // Fetch attachments when report ID changes
+  useEffect(() => {
+    if (report?.id) {
+      console.log(`📎 Fetching attachments for report: ${report.id}`);
+      fetchAttachments();
+    } else {
+      // Clear attachments if no report is loaded
+      setAttachments([]);
     }
   }, [report?.id]);
 

@@ -588,6 +588,42 @@ async def add_landfill_row(row: LandfillRow):
     }
     
     save_landfill_data(data)
+    
+    # Also update in all_reports.json
+    report_id = data.get('id') or data.get('report_info', {}).get('report_id')
+    if report_id:
+        all_reports = load_all_reports()
+        for report in all_reports.get('reports', []):
+            if report.get('id') == report_id:
+                # Add the row in all_reports
+                report.setdefault('data_rows', []).append(row.dict())
+                
+                # Update totals
+                report['totals'] = data['totals']
+                
+                # Increment version
+                current_version = report.get('version', 1)
+                new_version = current_version + 1
+                report['version'] = new_version
+                report['updated_at'] = datetime.now().isoformat()
+                
+                # Add audit entry
+                audit_entry = {
+                    "id": f"audit_{int(time.time())}",
+                    "action": "updated",
+                    "user_id": "system",
+                    "timestamp": datetime.now().isoformat(),
+                    "comment": f"Row added, version {new_version}"
+                }
+                report.setdefault('audit_trail', []).append(audit_entry)
+                
+                save_all_reports(all_reports)
+                return {
+                    "message": "Row added successfully",
+                    "row": row,
+                    "version": new_version
+                }
+    
     return {"message": "Row added successfully", "row": row}
 
 @app.put("/landfill-report")
@@ -608,8 +644,39 @@ async def update_landfill_report(report_data: dict):
             'total': total_total
         }
     
-    # Save updated data
+    # Save updated data to landfill_data.json
     save_landfill_data(report_data)
+    
+    # Also update in all_reports.json if report has an ID
+    report_id = report_data.get('id') or report_data.get('report_info', {}).get('report_id')
+    if report_id:
+        all_reports = load_all_reports()
+        for report in all_reports.get('reports', []):
+            if report.get('id') == report_id:
+                # Increment version
+                current_version = report.get('version', 1)
+                new_version = current_version + 1
+                
+                # Update report data
+                report.update(report_data)
+                report['version'] = new_version
+                report['updated_at'] = datetime.now().isoformat()
+                
+                # Add audit entry
+                audit_entry = {
+                    "id": f"audit_{int(time.time())}",
+                    "action": "updated",
+                    "user_id": "system",
+                    "timestamp": datetime.now().isoformat(),
+                    "comment": f"Report updated to version {new_version}"
+                }
+                report.setdefault('audit_trail', []).append(audit_entry)
+                
+                save_all_reports(all_reports)
+                return {
+                    "message": "Report updated successfully",
+                    "version": new_version
+                }
     
     return {"message": "Report updated successfully"}
 
@@ -651,6 +718,7 @@ async def upload_attachments(report_id: str, request: Request):
     try:
         form = await request.form()
         uploaded_files = []
+        user_id = form.get('user_id', 'unknown')
         
         # Create attachments directory if it doesn't exist
         attachments_dir = f"attachments/{report_id}"
@@ -676,22 +744,49 @@ async def upload_attachments(report_id: str, request: Request):
                     "file_path": file_path,
                     "size": len(content),
                     "uploaded_at": datetime.now().isoformat(),
-                    "uploaded_by": form.get('user_id', 'unknown')
+                    "uploaded_by": user_id
                 })
         
-        # Update the report with attachment info
+        # Update the report with attachment info and audit trail
         all_reports = load_all_reports()
+        updated_version = None
+        audit_entry = None
+        
         for report in all_reports.get('reports', []):
             if report.get('id') == report_id:
+                # Add attachments
                 if 'attachments' not in report:
                     report['attachments'] = []
                 report['attachments'].extend(uploaded_files)
+                
+                # Increment version
+                current_version = report.get('version', 1)
+                updated_version = current_version + 1
+                report['version'] = updated_version
+                
+                # Update metadata
+                report['last_modified_by'] = user_id
+                report['updated_at'] = datetime.now().isoformat()
+                
+                # Add audit trail entry
+                file_names = ', '.join([f['filename'] for f in uploaded_files])
+                audit_entry = {
+                    "id": f"audit_{int(time.time())}",
+                    "action": "attachment_uploaded",
+                    "user_id": user_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "comment": f"Uploaded {len(uploaded_files)} attachment(s): {file_names}"
+                }
+                report.setdefault('audit_trail', []).append(audit_entry)
+                
                 save_all_reports(all_reports)
                 break
         
         return {
             "message": f"Successfully uploaded {len(uploaded_files)} attachment(s)",
-            "attachments": uploaded_files
+            "attachments": uploaded_files,
+            "version": updated_version,
+            "audit_entry": audit_entry
         }
     except Exception as e:
         return {"error": f"Failed to upload attachments: {str(e)}"}
@@ -744,6 +839,45 @@ async def update_landfill_row(row_id: int, row: LandfillRow):
             }
             
             save_landfill_data(data)
+            
+            # Also update in all_reports.json
+            report_id = data.get('id') or data.get('report_info', {}).get('report_id')
+            if report_id:
+                all_reports = load_all_reports()
+                for report in all_reports.get('reports', []):
+                    if report.get('id') == report_id:
+                        # Update the row in all_reports
+                        for j, report_row in enumerate(report.get('data_rows', [])):
+                            if report_row.get('id') == row_id:
+                                report['data_rows'][j] = row.dict()
+                                break
+                        
+                        # Update totals
+                        report['totals'] = data['totals']
+                        
+                        # Increment version
+                        current_version = report.get('version', 1)
+                        new_version = current_version + 1
+                        report['version'] = new_version
+                        report['updated_at'] = datetime.now().isoformat()
+                        
+                        # Add audit entry
+                        audit_entry = {
+                            "id": f"audit_{int(time.time())}",
+                            "action": "updated",
+                            "user_id": "system",
+                            "timestamp": datetime.now().isoformat(),
+                            "comment": f"Row {row_id} updated, version {new_version}"
+                        }
+                        report.setdefault('audit_trail', []).append(audit_entry)
+                        
+                        save_all_reports(all_reports)
+                        return {
+                            "message": "Row updated successfully",
+                            "row": row,
+                            "version": new_version
+                        }
+            
             return {"message": "Row updated successfully", "row": row}
     
     return {"error": "Row not found"}
@@ -770,6 +904,41 @@ async def delete_landfill_row(row_id: int):
             }
             
             save_landfill_data(data)
+            
+            # Also update in all_reports.json
+            report_id = data.get('id') or data.get('report_info', {}).get('report_id')
+            if report_id:
+                all_reports = load_all_reports()
+                for report in all_reports.get('reports', []):
+                    if report.get('id') == report_id:
+                        # Delete the row in all_reports
+                        report['data_rows'] = [row for row in report.get('data_rows', []) if row.get('id') != row_id]
+                        
+                        # Update totals
+                        report['totals'] = data['totals']
+                        
+                        # Increment version
+                        current_version = report.get('version', 1)
+                        new_version = current_version + 1
+                        report['version'] = new_version
+                        report['updated_at'] = datetime.now().isoformat()
+                        
+                        # Add audit entry
+                        audit_entry = {
+                            "id": f"audit_{int(time.time())}",
+                            "action": "updated",
+                            "user_id": "system",
+                            "timestamp": datetime.now().isoformat(),
+                            "comment": f"Row {row_id} deleted, version {new_version}"
+                        }
+                        report.setdefault('audit_trail', []).append(audit_entry)
+                        
+                        save_all_reports(all_reports)
+                        return {
+                            "message": f"Row {row_id} deleted successfully",
+                            "version": new_version
+                        }
+            
             return {"message": f"Row {row_id} deleted successfully"}
     
     return {"error": "Row not found"}
